@@ -1,0 +1,41 @@
+<config>
+    <menu>
+        <system translate="title" module="optimal">
+            <children>
+                <optimal translate="title" module="optimal">
+                    <title>Optimal Payments</title>
+                    <sort_order>1</sort_order>
+                    <children>
+                        <mapping translate="title" module="optimal">
+                            <title>Manage ThreatMetrix Mappings</title>
+                            <sort_order>1</sort_order>
+                            <action>adminhtml/threat/index</action>
+                        </mapping>
+                    </children>
+                </optimal>
+            </children>
+        </system>
+    </menu>
+    <acl>
+        <resources>
+            <admin>
+                <children>
+                    <system translate="title" module="optimal">
+                        <children>
+                            <optimal translate="title" module="optimal">
+                                <title>Optimal Payments</title>
+                                <sort_order>1</sort_order>
+                                <children>
+                                    <mapping translate="title" module="optimal">
+                                        <title>Manage ThreatMetrix Mappings</title>
+                                        <sort_order>1</sort_order>
+                                    </mapping>
+                                </children>
+                            </optimal>
+                        </children>
+                    </system>
+                </children>
+            </admin>
+        </resources>
+    </acl>
+</config>

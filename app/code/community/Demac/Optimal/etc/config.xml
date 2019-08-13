@@ -1,0 +1,161 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Demac_Optimal>
+            <version>0.1.1</version>
+        </Demac_Optimal>
+    </modules>
+
+    <phpunit>
+        <suite>
+            <modules>
+                <Demac_Optimal/>
+            </modules>
+        </suite>
+    </phpunit>
+
+    <adminhtml>
+        <layout>
+            <updates>
+                <optimal module="dcp">
+                    <file>optimal.xml</file>
+                </optimal>
+            </updates>
+        </layout>
+    </adminhtml>
+
+    <frontend>
+        <layout>
+            <updates>
+                <optimal module="optimal">
+                    <file>optimal.xml</file>
+                </optimal>
+            </updates>
+        </layout>
+        <routers>
+            <optimal>
+                <use>standard</use>
+                <args>
+                    <module>Demac_Optimal</module>
+                    <frontName>optimal</frontName>
+                </args>
+            </optimal>
+        </routers>
+        <frontend>
+            <translate>
+                <modules>
+                    <translations>
+                        <files>
+                            <default>Demac_Optimal.csv</default>
+                        </files>
+                    </translations>
+                </modules>
+            </translate>
+        </frontend>
+
+        <events>
+            <sales_order_place_before>
+                <observers>
+                    <optimal_hosted_order>
+                        <type>singleton</type>
+                        <class>Demac_Optimal_Model_Observer</class>
+                        <method>salesOrderPlaceBefore</method>
+                    </optimal_hosted_order>
+                </observers>
+            </sales_order_place_before>
+            <sales_order_place_after>
+                <observers>
+                    <optimal_hosted_order_after>
+                        <type>singleton</type>
+                        <class>Demac_Optimal_Model_Observer</class>
+                        <method>salesOrderPlaceAfter</method>
+                    </optimal_hosted_order_after>
+                </observers>
+            </sales_order_place_after>
+        </events>
+
+    </frontend>
+    <global>
+        <models>
+            <optimal>
+                <class>Demac_Optimal_Model</class>
+                <resourceModel>optimal_mysql4</resourceModel>
+            </optimal>
+            <optimal_mysql4>
+                <class>Demac_Optimal_Model_Mysql4</class>
+                <entities>
+                    <risk>
+                        <table>demac_optimal_risk</table>
+                    </risk>
+                </entities>
+            </optimal_mysql4>
+        </models>
+        <blocks>
+            <optimal>
+                <class>Demac_Optimal_Block</class>
+            </optimal>
+        </blocks>
+        <helpers>
+            <optimal>
+                <class>Demac_Optimal_Helper</class>
+            </optimal>
+        </helpers>
+        <resources>
+            <optimal_setup>
+                <setup>
+                    <module>Demac_Optimal</module>
+                    <class>Demac_Optimal_Model_Resource_Mysql4_Setup</class>
+                </setup>
+                <connection>
+                    <use>core_setup</use>
+                </connection>
+            </optimal_setup>
+            <optimal_write>
+                <connection>
+                    <use>core_write</use>
+                </connection>
+            </optimal_write>
+            <optimal_read>
+                <connection>
+                    <use>core_read</use>
+                </connection>
+            </optimal_read>
+        </resources>
+    </global>
+
+    <admin>
+        <routers>
+            <adminhtml>
+                <args>
+                    <modules>
+                        <optimal before="Mage_Adminhtml">Demac_Optimal_Adminhtml</optimal>
+                    </modules>
+                </args>
+            </adminhtml>
+        </routers>
+    </admin>
+
+
+    <!-- declare default configuration values for this module -->
+    <default>
+        <!-- 'payment' configuration section (tab) -->
+        <payment>
+            <!-- 'newmodule' configuration group (fieldset) -->
+            <optimal_hosted>
+                <!-- by default this payment method is inactive -->
+                <active>0</active>
+                <useccv>1</useccv>
+                <!-- model to handle logic for this payment method -->
+                <model>optimal/method_hosted</model>
+                <!-- order status for new orders paid by this payment method -->
+                <order_status>pending</order_status>
+                <!-- default title for payment checkout page and order view page -->
+                <title>Optimal Payments (Hosted)</title>
+                <payment_action>authorize</payment_action>
+                <cctypes>AE,VI,MC,DI</cctypes>
+                <!--<payment_action>authorize</payment_action>-->
+                <allowspecific>0</allowspecific>
+            </optimal_hosted>
+        </payment>
+    </default>
+</config>
