@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by Self.
- * User: Sohaib Muneer - Magento Developer <smuneer@demacmedia.com>
- * Company: Demac Media Inc.
- * Date: 10/21/14
- * Time: 11:36 AM
- */
 
 class Op_Netbanx_Model_Mysql4_Errorcode extends Mage_Core_Model_Mysql4_Abstract
 {

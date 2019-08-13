@@ -1,3 +1,96 @@
+20161207 - Version 0.6.1
+Kit Lee <klee@collinsharper.com>
+
+app/code/community/Op/Netbanx/Helper/Data.php
+app/code/community/Op/Netbanx/Model/Method/Hosted.php
+
+20161110 - Version 0.6.0
+Kit Lee <klee@collinsharper.com>
+
+app/code/community/Op/Netbanx/Block/Info/Creditcard.php
+app/design/frontend/base/default/template/optimal/form/creditcard.phtml
+app/design/frontend/base/default/template/optimal/customer/cards/form.phtml
+app/code/community/Op/Netbanx/controllers/Frontend/OptimalController.php
+
+20161026 - Version 0.5.9
+Kit Lee <klee@collinsharper.com>,Shane Harper <sharper@collinsharper.com>
+
+app/code/community/Op/Netbanx/Model/Method/Hosted.php
+app/design/frontend/base/default/template/optimal/form/creditcard.phtml
+
+20161024 - Version 0.5.8
+Kit Lee <klee@collinsharper.com>
+
+app/code/community/Op/Netbanx/Block/Navigation.php
+app/design/frontend/base/default/template/optimal/form/creditcard.phtml
+
+20160419 - Version 0.5.7
+Shane Harper <sharper@collinsharper.com>
+
+app/code/community/Op/Netbanx/Helper/Data.php
+
+correction for ticket #22 - resolve issue with customer profiles
+
+
+20160419 - Version 0.5.6
+Steve Harper <stharper@collinsharper.com>
+
+app/code/community/Op/Netbanx/etc/CHANGELOG.txt
+app/code/community/Op/Netbanx/etc/conffig.xml
+
+Updated CHANGELOG.txt and Version on config.xml
+
+20160419 - Version 0.5.6
+Shane Harper <sharper@collinsharper.com>
+
+app/code/community/Op/Netbanx/Model/Method/Hosted.php
+
+correction for ticket #17 - include hidden vat tax
+
+
+20160318 - Version 0.5.5
+MengChi Tsai <mtsai@collinsharper.com>
+
+app/code/community/Op/Netbanx/etc/config.xml
+app/code/community/Op/Netbanx/etc/system.xml
+app/code/community/Op/Netbanx/Helper/Data.php
+
+Added an additional option in configuration that allows the admin to decide if the users can change their profile in PaySafe's hosted page.
+
+20160304 - Version 0.5.4
+Kit Lee <klee@collinsharper.com>
+
+app/code/community/Op/Netbanx/Helper/Data.php
+
+#15: Permanent Error if backed out at Paysafe page
+
+20160304 - Version 0.5.3
+MengChi Tsai <mtsai@collinsharper.com>
+
+app/code/community/Op/Netbanx/Block/Adminhtml/Risk.php
+app/code/community/Op/Netbanx/Block/Threat.php
+app/code/community/Op/Netbanx/Helper/Data.php
+app/code/community/Op/Netbanx/Model/Config/Mode.php
+app/code/community/Op/Netbanx/Model/Config/Status.php
+app/code/community/Op/Netbanx/Model/Config/Transaction.php
+app/code/community/Op/Netbanx/Model/Creditcard/Client.php
+app/code/community/Op/Netbanx/Model/Hosted/Client.php
+app/code/community/Op/Netbanx/Model/Method/Hosted.php
+app/code/community/Op/Netbanx/Model/Mysql4/Creditcard.php
+app/code/community/Op/Netbanx/Model/Mysql4/Errorcode.php
+app/code/community/Op/Netbanx/Model/Mysql4/Profile.php
+app/code/community/Op/Netbanx/Model/Observer.php
+app/code/community/Op/Netbanx/Model/Profile/Client.php
+app/code/community/Op/Netbanx/Model/Risk.php
+app/code/community/Op/Netbanx/Model/Sales/Order.php
+app/code/community/Op/Netbanx/Model/Web/Client.php
+app/code/community/Op/Netbanx/etc/config.xml
+
+Remove "demac" and all related information from all the listed files.
+Remove the prefix "demac" in config.xml file
+Change "demac_optimal_error.log" to const "optimal_error.log"
+
+
 20151202 - Version 0.5.2
 Shane Harper <sharper@collinsharper.com>
 

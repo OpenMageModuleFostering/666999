@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by JetBrains PhpStorm.
- * User: Allan MacGregor - Magento Practice Lead <allan@demacmedia.com>
- * Company: Demac Media Inc.
- * Date: 6/20/13
- * Time: 2:05 PM
- */
 
 class Op_Netbanx_Helper_Data extends Mage_Core_Helper_Abstract
 {
@@ -58,9 +51,29 @@ class Op_Netbanx_Helper_Data extends Mage_Core_Helper_Abstract
         $customerId = $merchantCustomer->getCustomerId();
         $currentStoreId = Mage::app()->getStore()->getStoreId();
         $apiLoginId = Mage::helper('core')->decrypt(Mage::getStoreConfig('payment/optimal_hosted/login'), $currentStoreId);
+
+        // KL: Here is the potential bug, if customer have more then 1 sites and they try to use the same
+        //     API Key for test, they are going to experience the issue on duplicate profile merchant customer id
+        //     The following patch is designed to address this issue
+        if (strlen(trim($merchantCustomer->getData('generated_merchant_id'))) > 0) {
+            $generatedId = $merchantCustomer->getData('generated_merchant_id');
+        } else {
+            $generatedId = md5($apiLoginId . $internalId . $customerId . Mage::app()->getRequest()->getHttpHost());
+            //md5($apiLoginId . $internalId . $customerId . $this->gen_uuid() . time());
+        }
+
+        if(!$customerId) {
+
+            $merchantCustomer->setData('generated_merchant_id', $generatedId);
+            mage::log(__METHOD__ . __LINE__ . print_r($merchantCustomer->getData(),1));
+            $merchantCustomer->setDataChanges(true);
+            $merchantCustomer->save();
+            mage::getSingleton('core/session')->setOptimalAnonymousGeneratedCustomerId($generatedId);
+        }
         return array(
             'internal_id' => $internalId,
-            'merchant_customer_id' => md5($apiLoginId . $internalId . $customerId)
+            // KL: We would like to make this value refresh everytime it get called
+            'merchant_customer_id' => $generatedId
         );
     }
 
@@ -90,6 +103,7 @@ class Op_Netbanx_Helper_Data extends Mage_Core_Helper_Abstract
      */
     public function prepareNetbanksOrderData($orderData, $customerData, $saveCard = false, $transactionMode = null)
     {
+
         $shoppingCartArray  = array();
         $orderItems         = $orderData['order_items'];
         $billingAddress     = $orderData['billing_address'];
@@ -141,6 +155,7 @@ class Op_Netbanx_Helper_Data extends Mage_Core_Helper_Abstract
         $merchantCustomerId             = null;
 
         $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D', $storeId);
+        $profileEditingEnabled = Mage::getStoreConfig('payment/optimal_hosted/profile_edit_enable', $storeId);
         $profilesEnabled = Mage::getStoreConfig('payment/optimal_profiles/active', $storeId);
 
         if (!$customerData['is_guest']) {
@@ -153,27 +168,39 @@ class Op_Netbanx_Helper_Data extends Mage_Core_Helper_Abstract
             $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
             $profile = Mage::getModel('optimal/creditcard')->loadByMerchantCustomerId($merchantCustomerId);
 
+
             // If not skipping 3D and CreateProfiles is TRUE
             if (!$skip3d && $profilesEnabled) {
-
+                // KL: Logic bug here, we shall not create the profile record until we have success completed transaction
                 if ($profile->getProfileId()) {
 
                     $customerProfile['id'] = (string) $profile->getProfileId();
 
-                } elseif (empty($customerProfile['merchantCustomerId'])) {
-                    $merchantCustomerId = $this->getMerchantCustomerId($customerId);
-                    $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
-                    $customerProfile['merchantCustomerId']  = $merchantCustomerId;
-                }
+                    /*            if (empty($customerProfile['merchantCustomerId'])) {
+                                    $merchantCustomerId = $this->getMerchantCustomerId($customerId);
+                                    $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
+                                    $customerProfile['merchantCustomerId']  = $merchantCustomerId;
+                                }*/
+                    unset($customerProfile['merchantCustomerId']);
 
+                } else {
+                    if (empty($customerProfile['merchantCustomerId'])) {
+                        $merchantCustomerId = $this->getMerchantCustomerId($customerId);
+                        $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
+                        $customerProfile['merchantCustomerId']  = $merchantCustomerId;
+                    }
+                    $customerProfile['merchantCustomerId']  = $customerProfile['merchantCustomerId'] . '-' . time();
+                }
             } elseif (!$skip3d && !$profilesEnabled) {
 
                 if ($profile->getProfileId()) {
                     $customerProfile['id']    = $profile->getProfileId();
+
                 }
 
             } else {
                 if (!empty($customerData['profile_id'])) { // Check if there is a profile_id being passed
+
                     $profile = Mage::getModel('optimal/creditcard')->load((int)$customerData['profile_id']);
                     if ($profile->getProfileId()) {
                         $customerProfile['id'] = (string)$profile->getProfileId();
@@ -242,10 +269,17 @@ class Op_Netbanx_Helper_Data extends Mage_Core_Helper_Abstract
                 'value'     => false
             );
 
-            $extendedOptionsArray[] = array(
-                'key'       => 'disablePaymentPageEditing',
-                'value'     => true
-            );
+            if ($profileEditingEnabled){
+                $extendedOptionsArray[] = array(
+                    'key'       => 'disablePaymentPageEditing',
+                    'value'     => false
+                );
+            }else{
+                $extendedOptionsArray[] = array(
+                    'key'       => 'disablePaymentPageEditing',
+                    'value'     => true
+                );
+            }
         }
 
         $addendumDataArray = array();
@@ -412,10 +446,9 @@ class Op_Netbanx_Helper_Data extends Mage_Core_Helper_Abstract
         $data['billingDetails']     = $billingDetailsArray;
         $data['shippingDetails']    = $shippingDetailsArray;
         $data['redirect']           = $redirectArray;
-        $data['profile']            = $customerProfile;
+        $data['profile'] = $customerProfile;
         $data['extendedOptions']    = $extendedOptionsArray;
         $data['addendumData']       = $addendumDataArray;
-
         return $data;
     }
 
@@ -463,4 +496,17 @@ class Op_Netbanx_Helper_Data extends Mage_Core_Helper_Abstract
         return $show;
     }
 
+    /**
+     * gen UUID
+     *
+     * @return string
+     */
+    public function gen_uuid()
+    {
+        return sprintf(
+            '%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff)
+        );
+    }
 }

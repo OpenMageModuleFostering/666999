@@ -1,15 +1,9 @@
 <?php
-/**
- * Created by JetBrains PhpStorm.
- * User: Allan MacGregor - Magento Practice Lead <allan@demacmedia.com>
- * Company: Demac Media Inc.
- * Date: 6/20/13
- * Time: 1:29 PM
- */
 
 class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
 {
     const METHOD_CODE = 'optimal_hosted';
+    const LOG_FILE_NAME = 'optimal_error.log';
 
     protected $_code                    = self::METHOD_CODE;
     protected $_canSaveCc               = false;
@@ -194,7 +188,9 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
     public function authorize(Varien_Object $payment, $amount)
     {
 
-        $payment->setIsTransactionPending(true);
+        if ($payment->getOrder()->getState() !=  Mage_Sales_Model_Order::STATE_PROCESSING) {
+        	$payment->setIsTransactionPending(true);
+		}
 
         if (!$this->canAuthorize()) {
             Mage::throwException(Mage::helper('payment')->__('Authorize action is not available.'));
@@ -236,7 +232,9 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
             $orderData['billing_address']   = $order->getBillingAddress();
             $orderData['shipping_address']  = $order->getShippingAddress();
 
-            $orderData['base_tax_amount']               = $order->getBaseTaxAmount();
+            // 20160419 - Tax correction for VAT hidden tax ticket #17
+            $orderData['base_tax_amount']               = $order->getBaseTaxAmount() + $order->getBaseHiddenTaxAmount();
+
             $orderData['gift_cards_amount']             = $quote->getBaseGiftCardsAmountUsed();
             $orderData['base_grand_total']              = $order->getBaseGrandTotal();
             $orderData['base_currency_code']            = $order->getBaseCurrencyCode();
@@ -327,6 +325,7 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
             if (isset($postURL) && (!$skip3d || ($allowInterac && $useInterac))) {
 
                 try {
+
                     $order->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT);
                     $order->setStatus('pending_payment');
                     $order->addStatusHistoryComment('Redirecting the Customer to Optimal Payments for Payment Authorisation', 'pending_payment');
@@ -350,7 +349,7 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                     $this->orderRedirectUrl($postURL);
 
                 } catch (Exception $e) {
-                    Mage::log($e->getMessage(), null, 'demac_optimal.log');
+                    Mage::log($e->getMessage(), null, self::LOG_FILE_NAME);
                     Mage::logException($e);
                     $checkoutSess->addError(Mage::helper('optimal')->__('An error was encountered while redirecting to the payment gateway, please try again later.'));
                     $this->_handlePaymentFailure();
@@ -377,7 +376,7 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
 
                 if (!isset($orderStatus->transaction))
                 {
-                    Mage::log('Aborting ... Transaction Object not present in orderStatus', null, 'demac_optimal.log');
+                    Mage::log('Aborting ... Transaction Object not present in orderStatus', null, self::LOG_FILE_NAME);
                     Mage::throwException('Something went wrong with your transaction. Please contact support.');
                 }
 
@@ -447,8 +446,12 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                 $payment->setAdditionalInformation('transaction', serialize($transaction));
                 $payment->setTransactionId($orderStatus->id);
                 // magento will automatically close the transaction on auth preventing the invoice from being captured online.
+                // 20161027 - sharper - issue with onsite authorize
+                $payment->setIsTransactionPending(false);
                 $payment->setIsTransactionClosed(false);
                 $payment->setAdditionalInformation('payment_type', $this->getInfoInstance()->getCcType());
+
+
             }
 
             return $this;
@@ -490,7 +493,7 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
             Mage::throwException('There was a problem retrieving the order information. Please contact support.');
         }
 
-        Mage::log('Get-Optimal-Order-Status Try #: ' . ($counter + 1), null, 'demac_optimal.log');
+        Mage::log('Get-Optimal-Order-Status Try #: ' . ($counter + 1), null, self::LOG_FILE_NAME);
 
         try{
             return $client->retrieveOrder($id);
@@ -521,9 +524,10 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
     public function getConfigPaymentAction()
     {
         // TODO we always pretend we are authorize.. on return we do capture
-        return Mage_Payment_Model_Method_Abstract::ACTION_AUTHORIZE;
-        // return $this->getConfigData('payment_action');
-
+        if(!Mage::getStoreConfig('payment/optimal_hosted/skip3D', Mage::app()->getStore()->getStoreId())) {
+            return Mage_Payment_Model_Method_Abstract::ACTION_AUTHORIZE;
+        }
+         return $this->getConfigData('payment_action');
     }
 
     /**
@@ -596,7 +600,7 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
 
                 return $this;
             } else {
-                Mage::throwException('Transaction information is not properly set. Please contact support@demacmedia.com');
+                Mage::throwException('Transaction information is not properly set.');
             }
         } catch (Exception $e) {
             Mage::logException($e);
@@ -641,7 +645,7 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                 } elseif($transactionStatus->transaction->status == 'success') {
                     $response = $client->cancelOrder($orderData['id']);
                 } else {
-                    Mage::throwException('Unable to void transaction. Please contact support@demacmedia.com');
+                    Mage::throwException('Unable to void transaction.');
                 }
 
                 $payment
@@ -660,7 +664,7 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
 
 
             } else {
-                Mage::throwException('Transaction information is not properly set. Please contact support@demacmedia.com');
+                Mage::throwException('Transaction information is not properly set.');
             }
         } catch (Exception $e) {
             Mage::logException($e);
@@ -722,7 +726,7 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                 return $this;
 
             } else {
-                Mage::throwException('Transaction information is not properly set. Please contact support@demacmedia.com');
+                Mage::throwException('Transaction information is not properly set.');
             }
         } catch (Exception $e) {
             Mage::logException($e);

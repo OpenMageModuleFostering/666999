@@ -38,6 +38,7 @@ class Op_Netbanx_Block_Info_Creditcard extends Mage_Payment_Block_Info_Cc
         }
 
         $info = array(
+            'name' => $info->getCcOwner(),
             'card_type' => $this->getCcTypeName(),
             'card_number' => $info->getCcLast4(),
             'card_exp' => $info->getCcExpMonth() . '/' . $info->getCcExpYear(),

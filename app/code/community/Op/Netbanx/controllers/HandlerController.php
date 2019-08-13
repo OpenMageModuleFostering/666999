@@ -9,9 +9,11 @@ class Op_Netbanx_HandlerController extends Mage_Core_Controller_Front_Action
      */
     public function callbackAction()
     {
+
         $params             = $this->getRequest()->getParams();
         $session            = Mage::getSingleton('checkout/session');
         $status             = $params['transaction_status'];
+
 
         if ($status != 'success') {
             $session->addError($this->__('Payment failed, please review your payment information and try again.'));
@@ -118,8 +120,22 @@ class Op_Netbanx_HandlerController extends Mage_Core_Controller_Front_Action
             list($month, $year) = explode('/', $transaction->card->expiry);
         }
 
+
+        $merchantCustomerId = mage::getSingleton('core/session')->getOptimalAnonymousGeneratedCustomerId();
+
+        if($merchantCustomerId) {
+            $customerId = (int)$customerSession->getId();
+            $resource = Mage::getSingleton('core/resource');
+            $write = $resource->getConnection('core_write');
+            $tableName = $resource->getTablename(Op_Netbanx_Model_Merchant_Customer::TABLE_NAME);
+            $sql = " update {$tableName} set customer_id = {$customerId} where generated_merchant_id = '{$merchantCustomerId}' and customer_id = 0 limit 1";
+            $write->query($sql);
+
+        }
+        mage::getSingleton('core/session')->unsOptimalAnonymousGeneratedCustomerId();
         if ($customerSession->isLoggedIn() && $transaction->paymentType != 'interac') {
             $customerId = $customerSession->getId();
+
             $customerData = Mage::getModel('customer/customer')->load($customerId)->getData();
             $Card = Mage::getModel('optimal/creditcard');
             $digits = $transaction->card->lastDigits;

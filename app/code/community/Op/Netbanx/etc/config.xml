@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Op_Netbanx>
-            <version>0.5.2</version>
+            <version>0.6.1</version>
         </Op_Netbanx>
     </modules>
 
@@ -188,6 +188,8 @@
                 <cctypes>AE,VI,MC,DI</cctypes>
                 <!--<payment_action>authorize</payment_action>-->
                 <allowspecific>0</allowspecific>
+		<!-- by default editing is disallowed like out of box functionality -->
+		<profile_edit_enable>0</profile_edit_enable>
             </optimal_hosted>
             <optimal_profiles>
                 <profile_key>mage</profile_key>

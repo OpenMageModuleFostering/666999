@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by JetBrains PhpStorm.
- * User: Allan MacGregor - Magento Practice Lead <allan@demacmedia.com>
- * Company: Demac Media Inc.
- * Date: 6/20/13
- * Time: 12:53 PM
- */
 
 class Op_Netbanx_Model_Profile_Client extends Op_Netbanx_Model_Client_Abstract
 {
@@ -15,7 +8,8 @@ class Op_Netbanx_Model_Profile_Client extends Op_Netbanx_Model_Client_Abstract
     protected $_restEndpoints  = array();
 
     const CONNECTION_RETRIES   = 3;
-
+    const LOG_FILE_NAME = 'optimal_error.log';
+    
     public function _construct()
     {
 
@@ -91,7 +85,7 @@ class Op_Netbanx_Model_Profile_Client extends Op_Netbanx_Model_Client_Abstract
         // Yes I do
         if(isset($response->error))
         {
-            Mage:log('Netbanks Returned Error: ' . $response->error->message,null,'DemacOptimal_error.log');
+            Mage:log('Netbanks Returned Error: ' . $response->error->message,null, self::LOG_FILE_NAME);
             Mage::throwException($response->error->message);
             return false;
         }

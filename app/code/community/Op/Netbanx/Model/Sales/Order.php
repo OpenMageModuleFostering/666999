@@ -1,9 +1,5 @@
 <?php
- /**
- * @author Allan MacGregor - Magento Head Developer <amacgregor@demacmedia.com>
- * @company Demac Media Inc.
- * @copyright 2010-2014 Demac Media Inc.
- */ 
+
 class Op_Netbanx_Model_Sales_Order extends Mage_Sales_Model_Order
 {
 

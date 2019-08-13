@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by JetBrains PhpStorm.
- * User: Allan MacGregor - Magento Head Developer <allan@demacmedia.com>
- * Company: Demac Media Inc.
- * Date: 6/24/13
- * Time: 1:49 PM
- */
 
 class Op_Netbanx_Model_Observer
 {
@@ -103,6 +96,7 @@ class Op_Netbanx_Model_Observer
             }
 
             // Check response from the api
+
             $response = $client->updateOrder($data, $transactionId);
         }
 

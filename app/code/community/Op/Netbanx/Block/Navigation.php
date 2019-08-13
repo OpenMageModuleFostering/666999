@@ -12,4 +12,10 @@ class Op_Netbanx_Block_Navigation extends Mage_Customer_Block_Account_Navigation
 
         return parent::getLinks();
     }
+
+    // KL: Backward compatiblity issue fix
+    public function removeLinkByName($name) {
+        unset($this->_links[$name]);
+    }
+
 }

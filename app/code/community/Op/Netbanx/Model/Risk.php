@@ -10,7 +10,7 @@ class Op_Netbanx_Model_Risk extends Mage_Core_Model_Abstract
 
     /**
      * @param $manifestId
-     * @return Demac_CanadaPost_Model_Artifact
+     * @return $this
      */
     public function loadByCode($errorCode)
     {

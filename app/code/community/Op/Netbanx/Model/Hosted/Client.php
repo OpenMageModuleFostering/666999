@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by JetBrains PhpStorm.
- * User: Allan MacGregor - Magento Practice Lead <allan@demacmedia.com>
- * Company: Demac Media Inc.
- * Date: 6/20/13
- * Time: 12:53 PM
- */
 
 class Op_Netbanx_Model_Hosted_Client extends Op_Netbanx_Model_Client_Abstract
 {
@@ -13,7 +6,7 @@ class Op_Netbanx_Model_Hosted_Client extends Op_Netbanx_Model_Client_Abstract
     protected $_currencyCode   = null;
     protected $_totalAmount    = null;
 
-
+    const LOG_FILE_NAME = 'optimal_error.log';
     const CONNECTION_RETRIES   = 3;
 
     public function _construct()
@@ -202,10 +195,13 @@ class Op_Netbanx_Model_Hosted_Client extends Op_Netbanx_Model_Client_Abstract
         $helper = Mage::helper('optimal');
         $session = Mage::getSingleton('customer/session');
         $response = json_decode($this->_callApi($url,$method,$data));
+        Mage::log('OPTIMAL RESPONSE (callApi):', null, self::LOG_FILE_NAME);
+        Mage::log(print_r($response, true), null, self::LOG_FILE_NAME);
+
         $defaultMessage = 'Payment Gateway Error. Please contact the site admin.';
 
         if (isset($response->error) && !isset($response->error->code)) {
-            Mage::log($response, null, 'demac_optimal.log');
+            Mage::log($response, null, self::LOG_FILE_NAME);
             $helper->cleanMerchantCustomerId($session->getId());
             throw new Op_Netbanx_Model_Hosted_Exception($defaultMessage);
         }
@@ -228,7 +224,7 @@ class Op_Netbanx_Model_Hosted_Client extends Op_Netbanx_Model_Client_Abstract
             $message = $helper->getMsgByCode($response->transaction->errorCode);
 
             if ($message === null && !isset($response->transaction->errorCode)) {
-                Mage::log($response, null, 'demac_optimal.log');
+                Mage::log($response, null, self::LOG_FILE_NAME);
                 throw new Op_Netbanx_Model_Hosted_Exception($defaultMessage);
             }
 
@@ -325,8 +321,8 @@ class Op_Netbanx_Model_Hosted_Client extends Op_Netbanx_Model_Client_Abstract
             Mage::logException($e);
             return false;
         }
-        Mage::log('OPTIMAL RESPONSE (_callApi):', null, 'demac_optimal.log');
-        Mage::log($curl_response, null, 'demac_optimal.log');
+        Mage::log('OPTIMAL RESPONSE (_callApi):', null, self::LOG_FILE_NAME);
+        Mage::log($curl_response, null, self::LOG_FILE_NAME);
         return $curl_response;
     }
 
@@ -364,8 +360,13 @@ class Op_Netbanx_Model_Hosted_Client extends Op_Netbanx_Model_Client_Abstract
             $headers = substr($curl_response, 0, curl_getinfo($curl, CURLINFO_HEADER_SIZE));
             $headers = explode("\n", $headers);
 
-            Mage::log('OPTIMAL RESPONSE (submitPayment):', null, 'demac_optimal.log');
-            Mage::log($curl_response, null, 'demac_optimal.log');
+            Mage::log('OPTIMAL RESPONSE (submitPayment):', null, self::LOG_FILE_NAME);
+            Mage::log($curl_response, null, self::LOG_FILE_NAME);
+            Mage::log(print_r($headers, true), null, self::LOG_FILE_NAME);
+
+            $status = curl_getinfo($curl,CURLINFO_HTTP_CODE);
+            $redirectLocation = curl_getinfo($curl, CURLINFO_REDIRECT_URL);
+            Mage::log(print_r($redirectLocation, true), null, self::LOG_FILE_NAME);
             curl_close($curl);
 
             return true;

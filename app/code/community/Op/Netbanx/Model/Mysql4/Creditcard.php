@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: Allan MacGregor - Magento Practice Lead <allan@demacmedia.com>
- * Company: Demac Media Inc.
- * Date: 3/10/14
- * Time: 11:03 AM
- */
 
 class Op_Netbanx_Model_Mysql4_Creditcard extends Mage_Core_Model_Mysql4_Abstract
 {

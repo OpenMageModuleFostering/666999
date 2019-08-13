@@ -3,11 +3,11 @@
     "type": "magento-module",
     "license": "Apache-2.0",
     "homepage": "",
-    "description": "Securely access and process online payments with the NETBANX payment gateway.",
+    "description": "Optimal Payments module",
     "authors": [
     {
-        "name": "Shane Harper",
-        "email": "sharper@collinsharper.com"
+        "name": "Collins Harper",
+        "email": "ch@collinsharper.com"
     }
 ],
     "suggest": {

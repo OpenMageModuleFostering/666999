@@ -27,6 +27,7 @@
 <?php
 $_code = $this->getMethodCode();
 
+// KL: We are in hosted payment mode
 $skip3d = $this->skip3D();
 $profilesEnabled = $this->canSaveProfiles();
 //$profilesEnabled = ($this->hasOptimalProfiles() === true);
@@ -342,7 +343,7 @@ $profiles = $this->hasOptimalProfiles();
                 <?php if($this->canSaveProfiles()): ?>
                     <li class="control">
                         <input type="checkbox" title="<?php echo $this->__('Create Profile and Save Card') ?>" class="radio" value="1" id="<?php echo $_code ?>_optimal_create_profile" name="payment[optimal_create_profile]">
-                        <label for="<?php echo $_code ?>_optimal_create_profile" class="required"><em>*</em><?php echo $this->__('Create Profile and Save Card') ?> </label>
+                        <label for="<?php echo $_code ?>_optimal_create_profile"><?php echo $this->__('Create Profile and Save Card') ?> </label>
                     </li>
                 <?php else: ?>
                     <input type="hidden" title="<?php echo $this->__('Create Profile and Save Card') ?>" class="radio" value="0" id="<?php echo $_code ?>_create_profile" name="payment[optimal_create_profile]">

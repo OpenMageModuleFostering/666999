@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by JetBrains PhpStorm.
- * User: Allan MacGregor - Magento Practice Lead <allan@demacmedia.com>
- * Company: Demac Media Inc.
- * Date: 8/8/13
- * Time: 7:29 AM
- */
 
 class Op_Netbanx_Block_Threat extends Mage_Core_Block_Template
 {
