@@ -20,7 +20,7 @@ class Demac_Optimal_Block_Threat extends Mage_Core_Block_Template
     }
 
     /**
-     *
+     * Get the organization id
      *
      * @return mixed
      */
@@ -50,7 +50,7 @@ class Demac_Optimal_Block_Threat extends Mage_Core_Block_Template
     public function getSessionKey($sessionId)
     {
         $orgId = $this->getOrgId();
-        $time =  round(microtime(true) * 1000);
+        $time =  number_format(round(microtime(true) * 1000), 0, '.', '');
 
         if(isset($sessionId) && isset($orgId) && isset($time))
         {
@@ -71,7 +71,6 @@ class Demac_Optimal_Block_Threat extends Mage_Core_Block_Template
      */
     public function getThreatMetrixUrl($m = null)
     {
-
         $orgId = $this->getOrgId();
         $sessionId = $this->getSessionKey(Mage::getSingleton("core/session")->getEncryptedSessionId());
 

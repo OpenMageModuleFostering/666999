@@ -20,10 +20,41 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
     protected $_isGateway               = false;
     protected $_canRefund               = true;
     protected $_canRefundInvoicePartial = true;
+    protected $_canUseInternal          = true;
+    protected $_canUseCheckout          = true;
 
-    protected $_formBlockType   = 'payment/form_ccsave';
-    protected $_infoBlockType   = 'payment/info_ccsave';
+    protected $_formBlockType   = 'optimal/form_creditcard';
+    protected $_infoBlockType   = 'optimal/info_creditcard';
 
+    public function isGateway()
+    {
+        return $this->_isGateway;
+    }
+
+    public function canRefund()
+    {
+        return $this->_canRefund;
+    }
+
+    public function canVoid(Varien_Object $payment)
+    {
+        return $this->_canVoid;
+    }
+
+    public function canCapturePartial()
+    {
+        return $this->_canCapturePartial;
+    }
+
+    public function canAuthorize()
+    {
+        return $this->_canAuthorize;
+    }
+
+    public function canCapture()
+    {
+        return $this->_canCapture;
+    }
 
     /**
      * @param Mage_Sales_Model_Order_Payment $payment
@@ -59,30 +90,93 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
         return $transaction;
     }
 
-
-
     /**
-     * Check refund availability
+     * Assign data to info model instance
      *
-     * @return bool
+     * @param   mixed $data
+     * @return  Mage_Payment_Model_Info
      */
-    public function canRefund()
+    public function assignData($data)
     {
-        return $this->_canRefund;
+        if (!($data instanceof Varien_Object)) {
+            $data = new Varien_Object($data);
+        }
+        $info = $this->getInfoInstance();
+
+        $profileId = $data->getProfileId();
+
+        if(isset($profileId) && ($profileId != 0)) {
+            $profile = Mage::getModel('optimal/creditcard')
+                ->load($profileId, 'entity_id');
+            $expiry = explode('/', $profile->getCardExpiration());
+            $expiry[1] = 2000 + $expiry[1];
+            $info
+                ->unsOptimalCreateProfile()
+                ->setCcType($profile->getCardNickname())
+                ->setCcOwner($profile->getCardHolder())
+                ->setCcLast4($profile->getLastFourDigits())
+                ->setCcExpMonth($expiry[0])
+                ->setCcExpYear($expiry[1])
+                ->setCcCidEnc($info->encrypt($data->getCcCid()))
+                ->setOptimalProfileId($profileId);
+            $info->save();
+        } else {
+            $info
+                ->setCcType($data->getCcType())
+                ->setCcOwner($data->getCcOwner())
+                ->setCcLast4(substr($data->getCcNumber(), -4))
+                ->setCcNumber($data->getCcNumber())
+                ->setCcCid($data->getCcCid())
+                ->setCcExpMonth($data->getCcExpMonth())
+                ->setCcExpYear($data->getCcExpYear())
+                ->setCcSsIssue($data->getCcSsIssue())
+                ->setCcSsStartMonth($data->getCcSsStartMonth())
+                ->setCcSsStartYear($data->getCcSsStartYear())
+                ->setOptimalCreateProfile($data->getOptimalCreateProfile());
+        }
+        return $this;
     }
 
     /**
-     * Check void availability
+     * Validate payment method information object
      *
+     * @param   Mage_Payment_Model_Info $info
+     * @return  Mage_Payment_Model_Abstract
+     */
+    public function validate()
+    {
+        $info = $this->getInfoInstance();
+        $errorMsg = false;
+        $availableTypes = explode(',',$this->getConfigData('cctypes'));
+
+
+        $optimalProfileId = $info->getOptimalProfileId();
+        if ($optimalProfileId) {
+
+            //validate credit card verification number
+            if ($errorMsg === false && $this->hasVerification()) {
+                $ccId = $info->getCcCid();
+                if (!isset($ccId)){
+                    $errorMsg = Mage::helper('payment')->__('Please enter a valid credit card verification number.');
+                }
+            }
+
+            if($errorMsg){
+                Mage::throwException($errorMsg);
+            }
+
+        } else {
+            parent::validate();
+        }
+
+        return $this;
+    }
+
+    /**
      * @param Varien_Object $payment
-     * @internal param \Varien_Object $invoicePayment
-     * @return  bool
+     * @param $amount
+     * @return $this
      */
-    public function canVoid(Varien_Object $payment)
-    {
-        return $this->_canVoid;
-    }
-
     public function authorize(Varien_Object $payment, $amount)
     {
         if (!$this->canAuthorize()) {
@@ -90,22 +184,208 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
         }
 
         try {
+            $error = false;
+            $customerSession = Mage::getSingleton('customer/session');
+            $adminQuoteSession = Mage::getSingleton('adminhtml/session_quote');
+            if ($customerSession->isLoggedIn()){
+                $customerId = $customerSession->getId();
+                $customer = Mage::getModel('customer/customer')->load($customerId);
+            } elseif($adminQuoteSession->getCustomerId()){
+                $customer = Mage::getModel('customer/customer')->load($adminQuoteSession->getCustomerId());
+            }
 
-            $additionalInformation = $payment->getAdditionalInformation();
-            if (isset($additionalInformation['transaction'])) {
-                $orderData = unserialize($additionalInformation['order']);
-                $payment->setTransactionId($orderData['id']);
-                $payment->hasIsTransactionClosed(true);
-                $payment->setIsTransactionClosed(false);
+            if ( $amount < 0 ) {
+                $error = Mage::helper('paygate')->__('Invalid amount for capture.');
+            }
+
+            if ( $error !== false ) {
+                Mage::throwException('There was a problem authorizing the order.');
+            }
+
+            $order      = $payment->getOrder();
+            $client     = Mage::getModel('optimal/hosted_client');
+            $helper     = Mage::helper('optimal');
+
+            $createProfile = false;
+
+            $orderData      = array();
+            $customerData   = array();
+            // Get order data
+            $orderData['remote_ip']         = $order->getRemoteIp();
+            $orderData['order_items']       = $order->getAllVisibleItems();
+            $orderData['increment_id']      = $order->getIncrementId();
+            $orderData['customer_email']    = $order->getCustomerEmail();
+            $orderData['billing_address']   = $order->getBillingAddress();
+            $orderData['shipping_address']  = $order->getShippingAddress();
+
+            $orderData['base_tax_amount']               = $order->getBaseTaxAmount();
+            $orderData['base_grand_total']              = $order->getBaseGrandTotal();
+            $orderData['base_currency_code']            = $order->getBaseCurrencyCode();
+            $orderData['base_shipping_amount']          = $order->getBaseShippingAmount();
+            $orderData['base_discount_amount']          = $order->getBaseDiscountAmount();
+            $orderData['base_customer_balance_amount']  = $order->getBaseCustomerBalanceAmount();
+
+            $paymentData = $payment->getData();
+
+            if(isset($paymentData['optimal_create_profile'])){
+                $createProfile = $paymentData['optimal_create_profile'];
+            }
+
+            // Get customer information
+            if ($customerSession->isLoggedIn()){
+                $customerData = $customer->getData();
+                $customerData['is_guest'] = false;
+                $customerData['lastname'] = (string)$customer->getLastname();
+                $customerData['firstname'] = (string)$customer->getFirstname();
+                $customerData['email'] = (string)$customer->getEmail();
+
+            } else {
+                if ($createProfile) {
+                    $customerData['is_guest'] = false;
+                    $customerData['lastname'] = (string)$order->getCustomerLastname();
+                    $customerData['firstname'] = (string)$order->getCustomerFirstname();
+                    $customerData['email'] = (string)$order->getCustomerEmail();
+                } else {
+                    $customerData['is_guest'] = true;
+                    $customerData['lastname'] = (string)$order->getCustomerLastname();
+                    $customerData['firstname'] = (string)$order->getCustomerFirstname();
+                    $customerData['email'] = (string)$order->getCustomerEmail();
+                }
+            }
+
+            $savedCreditCardProfileId = 0;
+            if(isset($paymentData['optimal_profile_id']) && $paymentData['optimal_profile_id'] > 0) {
+                $savedCreditCardProfileId = $customerData['profile_id'] = $paymentData['optimal_profile_id'];
+            }
+
+            // Call the helper and get the data for netbank
+            $data = $helper->prepareNetbanksOrderData($orderData ,$customerData, $createProfile);
+
+            // Call Netbanks API and create the order
+            $response = $client->createOrder($data);
+            if (isset($response->link)) {
+                foreach ($response->link as $link) {
+                    if($link->rel === 'hosted_payment') {
+                        $postURL = $link->uri;
+                    }
+                }
+            } else {
+                Mage::throwException($this->__("There was a problem creating the order"));
+            }
+
+
+            if(isset($postURL)) {
+                $paymentData = $this->_preparePayment($payment->getData());
+
+                if($customerData['profile_id'])
+                {
+                    unset($paymentData['cardNum']);
+                    unset($paymentData['cardExpiryMonth']);
+                    unset($paymentData['cardExpiryYear']);
+                    $paymentData['id'] = $customerData['profile_id'];
+                    $paymentData['paymentToken'] = $data['profile']['paymentToken'];
+                }
+
+                $paymentResponse    = $client->submitPayment($postURL,$paymentData);
+                $orderStatus        = $client->retrieveOrder($response->id);
+                $transaction        = $orderStatus->transaction;
+
+                // Now we need to check the payment status if the transaction is available
+                if($transaction->status == 'declined' || $transaction->status == 'cancelled')
+                {
+                    Mage::throwException($this->__("There was a processing your payment"));
+                } else {
+
+                    // Check the order status for the profile information and try to save it
+                    if($createProfile){
+                        if(isset($orderStatus->profile)){
+                            $profile = Mage::getModel('optimal/creditcard');
+                            $merchantCustomerId = $orderStatus->profile->merchantCustomerId;
+
+                            if(!isset($merchantCustomerId))
+                            {
+                                $merchantCustomerId = Mage::helper('optimal')->getMerchantCustomerId($order->getCustomerId());
+                                $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
+                            }
+
+                            // Set Profile Info
+                            $profile->setCustomerId($order->getCustomerId());
+                            $profile->setProfileId($orderStatus->profile->id);
+                            $profile->setMerchantCustomerId($merchantCustomerId);
+                            $profile->setPaymentToken($orderStatus->profile->paymentToken);
+
+                            // Set Nickname
+                            $cardName = $orderStatus->transaction->card->brand;
+                            $profile->setCardNickname(Mage::helper('optimal')->processCardNickname($cardName));
+
+                            // Set Nickname
+                            //$cardHolder = $payment->getCcOwner();
+                            $cardHolder = $customerData['firstname'] . ' ' . $customerData['lastname']; // $params['firstname'] . $params['lastname'];
+                            $profile->setCardHolder($cardHolder);
+
+                            // Set Card Info
+                            $lastfour = $payment->getCcLast4();
+                            $profile->setLastFourDigits($lastfour);
+
+                            // Format card expiration date [todo]: Make a helper function
+                            $expirationDate = sprintf("%02s", $paymentData['cardExpiryMonth']) . "/"  . substr($paymentData['cardExpiryYear'], -2);
+
+                            $profile->setCardExpiration($expirationDate);
+
+                            $profile->save();
+                        }else {
+                            Mage::throwException($this->__("There was a problem saving your payment information."));
+                        }
+                    }
+
+
+
+                    $order->addStatusHistoryComment(
+                        'Netbanks Order Id: ' . $orderStatus->id .'<br/>' .
+                        'Reference: # ' . $orderStatus->merchantRefNum .'<br/>' .
+                        'Transaction Id: ' . $transaction->confirmationNumber .'<br/>' .
+                        'Status: ' . $transaction->status .'<br/>'
+                    );
+
+                    $payment->setStatus('APPROVED');
+                    $payment->setAdditionalInformation('order', serialize(array('id' => $orderStatus->id, 'optimal_profile_id' => $savedCreditCardProfileId)));
+                    $payment->setAdditionalInformation('transaction', serialize($transaction));
+                    $payment->setTransactionId($orderStatus->id);
+                    // magento will automatically close the transaction on auth preventing the invoice from being captured online.
+                    $payment->setIsTransactionClosed(false);
+                    $payment->setAdditionalInformation('payment_type', $this->getInfoInstance()->getCcType());
+
+                }
             }
 
             return $this;
         } catch (Exception $e) {
             Mage::logException($e);
-            return false;
+            Mage::throwException("Optimal Gateway Transaction Error: " . $e->getMessage());
+            Mage::helper('optimal')->cleanMerchantCustomerId(Mage::getSingleton('customer/session')->getId());
         }
     }
 
+    /**
+     * @param $paymentData
+     * @return array
+     */
+    protected function _preparePayment($paymentData)
+    {
+        $fPaymentData = array(
+            'cardNum'               => (string) $paymentData['cc_number'],
+            'cardExpiryMonth'       => (int) $paymentData['cc_exp_month'],
+            'cardExpiryYear'        => (int) $paymentData['cc_exp_year'],
+            'cvdNumber'             => (string) $paymentData['cc_cid'],
+        );
+
+        if($paymentData['optimal_create_profile'])
+        {
+            $fPaymentData['storeCardIndicator'] = (bool) $paymentData['optimal_create_profile'];
+        }
+
+        return $fPaymentData;
+    }
 
 
     /**
@@ -118,77 +398,60 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
      */
     public function capture(Varien_Object $payment, $amount)
     {
+        // Start Refactor : Fix capture for multistore setup
         $helper = Mage::helper('optimal');
         if ($amount <= 0) {
             Mage::throwException(Mage::helper('payment')->__('Invalid amount for capture.'));
         }
 
         try {
+
+            $transactionMode = Mage::getStoreConfig('payment/optimal_hosted/payment_action');
+            if($transactionMode == Demac_Optimal_Model_Method_Hosted::ACTION_AUTHORIZE_CAPTURE)
+            {
+                $result = $this->authorize($payment, $amount);
+                return $result;
+            }
+
             $additionalInformation = $payment->getAdditionalInformation();
 
-            if (isset($additionalInformation['transaction']))
-            {
+            if (isset($additionalInformation['transaction'])) {
 
                 $paymentData = unserialize($additionalInformation['transaction']);
                 $orderData = unserialize($additionalInformation['order']);
-                $client = Mage::getModel('optimal/hosted_client');
 
+                $order = $payment->getOrder();
                 $payment->setAmount($amount);
-                $order          = $payment->getOrder();
 
+                $client = Mage::getModel('optimal/hosted_client', array('store_id' => $order->getStoreId()));
 
-                /**
-                 * Commenting code because OPTIMAL API is broken
-                 * For the record going live right now is bullshit
-                 */
-
-//                if($paymentData->status == 'held')
-//                {
-//                    $data = array(
-//                        "transaction" => array(
-//                            "status"    => "success"
-//                        )
-//                    );
-//
-//                    $updateResponse = $client->updateOrder($data,$orderData['id']);
-//                    $order->addStatusHistoryComment(
-//                        'Trans Type: Update<br/>' .
-//                        'Confirmation Number: ' . $updateResponse->transaction->confirmationNumber .'<br/>' .
-//                        'Transaction Status: ' . $updateResponse->transaction->status .'<br/>'
-//                    );
-//
-//                    if($updateResponse->transaction->status != 'success'){
-//                        Mage::throwException('There was a problem releasing the Transaction. Please contact support@demacmedia.com');
-//                    }
-//                }
 
                 $data = array(
                     'amount' => (int)$helper->formatAmount($amount),
                     'merchantRefNum' => (string)$paymentData->merchantRefNum
                 );
 
-                $response       = $client->settleOrder($data, $orderData['id']);
-                $orderStatus    = $client->retrieveOrder($orderData['id']);
-                $transaction    = $orderStatus->transaction;
+                $response = $client->settleOrder($data, $orderData['id']);
+                $orderStatus = $client->retrieveOrder($orderData['id']);
+                $transaction = $orderStatus->transaction;
 
                 $associatedTransactions = $transaction->associatedTransactions;
 
                 $payment->setAdditionalInformation('transaction', serialize($transaction));
 
                 $order->addStatusHistoryComment(
-                    'Trans Type: ' . $response->authType .'<br/>' .
-                    'Confirmation Number: ' . $response->confirmationNumber .'<br/>' .
-                    'Transaction Amount: ' . $response->amount/100 .'<br/>'
+                    'Trans Type: ' . $response->authType . '<br/>' .
+                    'Confirmation Number: ' . $response->confirmationNumber . '<br/>' .
+                    'Transaction Amount: ' . $response->amount / 100 . '<br/>'
                 );
 
                 return $this;
-
             } else {
                 Mage::throwException('Transaction information is not properly set. Please contact support@demacmedia.com');
             }
         } catch (Exception $e) {
             Mage::logException($e);
-            return false;
+            Mage::throwException("Optimal Gateway Transaction Error: " . $e->getMessage());
         }
     }
 
@@ -206,7 +469,9 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
             $additionalInformation = $payment->getAdditionalInformation();
 
             if (isset($additionalInformation['transaction'])) {
-                $client = Mage::getModel('optimal/hosted_client');
+                $order = $payment->getOrder();
+
+                $client = Mage::getModel('optimal/hosted_client', array('store_id' => $order->getStoreId()));
 
                 $paymentData    = unserialize($additionalInformation['transaction']);
                 $orderData      = unserialize($additionalInformation['order']);
@@ -217,7 +482,6 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                     ->setIsTransactionClosed(1)
                     ->setShouldCloseParentTransaction(1);
 
-                $order = $payment->getOrder();
 
                 $order->addStatusHistoryComment(
                     'Trans Type: ' . $response->authType .'<br/>'.
@@ -233,11 +497,9 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
             }
         } catch (Exception $e) {
             Mage::logException($e);
-            return false;
+            Mage::throwException("Optimal Gateway Transaction Error: " . $e->getMessage());
         }
-
     }
-
 
     /**
      * Refund the amount
@@ -264,7 +526,9 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
             $additionalInformation = $payment->getAdditionalInformation();
 
             if (isset($additionalInformation['transaction'])) {
-                $client = Mage::getModel('optimal/hosted_client');
+                $order = $payment->getOrder();
+
+                $client = Mage::getModel('optimal/hosted_client', array('store_id' => $order->getStoreId()));
 
                 $paymentData    = unserialize($additionalInformation['transaction']);
                 $orderData      = unserialize($additionalInformation['order']);
@@ -274,10 +538,15 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                     'merchantRefNum'    => (string)$paymentData->merchantRefNum
                 );
 
-                $response = $client->refundOrder($data,$paymentData->associatedTransactions[0]->reference);
+                if(is_null($paymentData->associatedTransactions[0]->reference))
+                {
+                    $transactionId = $payment->getLastTransId();
+                }else {
+                    $transactionId = $paymentData->associatedTransactions[0]->reference;
 
-                $order = $payment->getOrder();
+                }
 
+                $response = $client->refundOrder($data,$transactionId);
                 $order->addStatusHistoryComment(
                     'Trans Type: ' . $response->authType .'<br/>',
                     'Confirmation Number: ' . $response->confirmationNumber .'<br/>',
@@ -290,7 +559,7 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
             }
         } catch (Exception $e) {
             Mage::logException($e);
-            return false;
+            Mage::throwException("Optimal Gateway Transaction Error: " . $e->getMessage());
         }
 
         return $this;

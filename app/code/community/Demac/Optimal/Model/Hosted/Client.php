@@ -7,19 +7,17 @@
  * Time: 12:53 PM
  */
 
-class Demac_Optimal_Model_Hosted_Client extends Mage_Core_Model_Abstract
+class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstract
 {
     protected $_merchantRefNum = null;
     protected $_currencyCode   = null;
     protected $_totalAmount    = null;
-    protected $_apiUrl         = null;
-    protected $_restEndpoints  = array();
+
 
     const CONNECTION_RETRIES   = 3;
 
     public function _construct()
     {
-        $this->_apiUrl = $this->_getApiUrl();
 
         // Initialize methods array
         $this->_restEndpoints = array(
@@ -33,6 +31,8 @@ class Demac_Optimal_Model_Hosted_Client extends Mage_Core_Model_Abstract
             'report'  => 'hosted/v1/orders',
             'rebill'  => 'hosted/v1/orders/%s',
         );
+
+        parent::_construct();
     }
 
     /**
@@ -181,22 +181,6 @@ class Demac_Optimal_Model_Hosted_Client extends Mage_Core_Model_Abstract
     }
 
     /**
-     * Get the API url based on the configuration
-     *
-     * @return string
-     */
-    protected function _getApiUrl()
-    {
-        if(Mage::getStoreConfig('payment/optimal_hosted/mode') === 'development')
-        {
-            $url = 'https://api.test.netbanx.com';
-        }else {
-            $url = 'https://api.netbanx.com';
-        }
-        return $url;
-    }
-
-    /**
      * Mapping of the RESTFul Api
      *
      * Create an Order      - hosted/v1/orders                      [POST]
@@ -218,11 +202,9 @@ class Demac_Optimal_Model_Hosted_Client extends Mage_Core_Model_Abstract
 
         $response = json_decode($this->_callApi($url,$method,$data));
 
-        // Do I need extra logic here ?
-        // Yes I do
         if(isset($response->error))
         {
-            Mage:log('Netbanks Returned Error: ' . $response->error->message,null,'DemacOptimal_error.log');
+            Mage::helper('optimal')->cleanMerchantCustomerId(Mage::getSingleton('customer/session')->getId());
             Mage::throwException($response->error->message);
             return false;
         }
@@ -232,6 +214,7 @@ class Demac_Optimal_Model_Hosted_Client extends Mage_Core_Model_Abstract
             if (!$session->getCustomerId()) {
                 Mage::getSingleton('customer/session')->addError($response->transaction->errorMessage);
             }
+            Mage::helper('optimal')->cleanMerchantCustomerId(Mage::getSingleton('customer/session')->getId());
             Mage::throwException($response->transaction->errorMessage);
             return false;
         }
@@ -255,6 +238,8 @@ class Demac_Optimal_Model_Hosted_Client extends Mage_Core_Model_Abstract
             $curl = curl_init($url);
             $headers[] = "Content-Type: application/json";
 
+            $this->_checkCurlVerifyPeer($curl);
+
             curl_setopt($curl, CURLOPT_USERPWD, $this->_getUserPwd());
             curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
 
@@ -277,7 +262,7 @@ class Demac_Optimal_Model_Hosted_Client extends Mage_Core_Model_Abstract
                     //hosted/v1/orders/{id}
                     break;
                 default:
-                    Mage::throwException($this->__("{$mode} mode was not recognized. Please one of the valid REST actions GET, POST, PUT, DELETE"));
+                    Mage::throwException("{$mode} mode was not recognized. Please one of the valid REST actions GET, POST, PUT, DELETE");
                     break;
             }
 
@@ -287,51 +272,17 @@ class Demac_Optimal_Model_Hosted_Client extends Mage_Core_Model_Abstract
             // Check if the response is false
             if($curl_response === false)
             {
-                Mage::throwException($this->__("Something went wrong while trying to retrieve the response from the REST api"));
+                Mage::throwException("Something went wrong while trying to retrieve the response from the REST api");
             }
-
-            // Check if the response threw an error
-            if($curl_response === false)
-            {
-                Mage::throwException($this->__("Something went wrong while trying to retrieve the response from the REST api"));
-            }
-
 
         } catch (Mage_Exception $e) {
             Mage::logException($e);
             return false;
-        } catch (Exception $e) {
-            Mage::logException($e);
-            return false;
         }
-
+        Mage::log('OPTIMAL RESPONSE (_callApi):');
+        Mage::log($curl_response);
         return $curl_response;
     }
-
-    /**
-     * @return bool|string
-     *
-     * TODO: TEST MULTI STORE SCENARIOS
-     *
-     */
-    protected function _getUserPwd()
-    {
-        try {
-            $user = Mage::helper('core')->decrypt(Mage::getStoreConfig('payment/optimal_hosted/login'));
-            $pwd = Mage::helper('core')->decrypt(Mage::getStoreConfig('payment/optimal_hosted/trans_key'));
-
-            if($user != '' && $pwd != '')
-            {
-                return $user . ':' . $pwd;
-            }else{
-                Mage::throwException($this->__("Something went wrong with your api credentials"));
-            }
-        } catch (Exception $e) {
-            Mage::logException($e);
-            return false;
-        }
-    }
-    
 
     /**
      * @param $url
@@ -352,7 +303,9 @@ class Demac_Optimal_Model_Hosted_Client extends Mage_Core_Model_Abstract
             }
 
             $data_string = rtrim($data_string, '&');
-            curl_setopt($curl, CURLOPT_HTTPHEADER, 0);
+            curl_setopt($curl, CURLOPT_HTTPHEADER, array());
+
+            $this->_checkCurlVerifyPeer($curl);
 
             //set the url, number of POST vars, POST data
             curl_setopt($curl,CURLOPT_URL, $url);
@@ -360,6 +313,9 @@ class Demac_Optimal_Model_Hosted_Client extends Mage_Core_Model_Abstract
             curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($curl,CURLOPT_POSTFIELDS, $data_string);
             $curl_response = curl_exec($curl);
+
+            Mage::log('OPTIMAL RESPONSE (submitPayment):');
+            Mage::log($curl_response);
             curl_close($curl);
             return true;
 
@@ -368,7 +324,6 @@ class Demac_Optimal_Model_Hosted_Client extends Mage_Core_Model_Abstract
             return false;
         }
     }
-
 
     /**
      * Build the RESTful url

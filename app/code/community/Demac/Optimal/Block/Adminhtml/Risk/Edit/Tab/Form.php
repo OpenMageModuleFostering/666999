@@ -53,7 +53,6 @@ class Demac_Optimal_Block_Adminhtml_Risk_Edit_Tab_Form extends Mage_Adminhtml_Bl
             'value'     => 0,
         ));
 
-        //Mage::log(Mage::getSingleton('adminhtml/session'));
         if ( Mage::getSingleton('adminhtml/session')->getRiskData() )
         {
             $form->setValues(Mage::getSingleton('adminhtml/session')->getRiskData());

@@ -21,6 +21,11 @@ class Demac_Optimal_Block_Adminhtml_Risk_Edit extends Mage_Adminhtml_Block_Widge
         $this->_updateButton('delete', 'label', Mage::helper('optimal')->__('Delete Mapping'));
     }
 
+    /**
+     * Get header text
+     *
+     * @return mixed
+     */
     public function getHeaderText()
     {
         if( Mage::registry('mapping_data') && Mage::registry('mapping_data')->getId() ) {

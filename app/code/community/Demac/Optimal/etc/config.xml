@@ -2,17 +2,9 @@
 <config>
     <modules>
         <Demac_Optimal>
-            <version>0.1.2</version>
+            <version>0.3.2</version>
         </Demac_Optimal>
     </modules>
-
-    <phpunit>
-        <suite>
-            <modules>
-                <Demac_Optimal/>
-            </modules>
-        </suite>
-    </phpunit>
 
     <adminhtml>
         <layout>
@@ -52,17 +44,7 @@
                 </modules>
             </translate>
         </frontend>
-
         <events>
-            <sales_order_place_before>
-                <observers>
-                    <optimal_hosted_order>
-                        <type>singleton</type>
-                        <class>Demac_Optimal_Model_Observer</class>
-                        <method>salesOrderPlaceBefore</method>
-                    </optimal_hosted_order>
-                </observers>
-            </sales_order_place_before>
             <sales_order_place_after>
                 <observers>
                     <optimal_hosted_order_after>
@@ -73,9 +55,27 @@
                 </observers>
             </sales_order_place_after>
         </events>
-
+        <routers>
+            <customer>
+                <args>
+                    <modules>
+                        <optimal before="Mage_Customer">Demac_Optimal_Frontend</optimal>
+                    </modules>
+                </args>
+            </customer>
+        </routers>
     </frontend>
     <global>
+        <fieldsets>
+            <sales_convert_quote_payment>
+                <optimal_create_profile>
+                    <to_order_payment>*</to_order_payment>
+                </optimal_create_profile>
+                <optimal_profile_id>
+                    <to_order_payment>*</to_order_payment>
+                </optimal_profile_id>
+            </sales_convert_quote_payment>
+        </fieldsets>
         <models>
             <optimal>
                 <class>Demac_Optimal_Model</class>
@@ -87,6 +87,15 @@
                     <risk>
                         <table>demac_optimal_risk</table>
                     </risk>
+                    <profile>
+                        <table>demac_optimal_profile</table>
+                    </profile>
+                    <creditcard>
+                        <table>demac_optimal_creditcard</table>
+                    </creditcard>
+                    <merchant_customer>
+                        <table>demac_optimal_merchant_customer</table>
+                    </merchant_customer>
                 </entities>
             </optimal_mysql4>
         </models>
@@ -156,6 +165,9 @@
                 <!--<payment_action>authorize</payment_action>-->
                 <allowspecific>0</allowspecific>
             </optimal_hosted>
+            <optimal_profiles>
+                <profile_key>mage</profile_key>
+            </optimal_profiles>
         </payment>
     </default>
 </config>

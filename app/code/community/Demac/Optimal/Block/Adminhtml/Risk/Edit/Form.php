@@ -18,7 +18,6 @@ class Demac_Optimal_Block_Adminhtml_Risk_Edit_Form extends Mage_Adminhtml_Block_
             'enctype' => 'multipart/form-data'
         ));
 
-
         $form->setUseContainer(true);
         $this->setForm($form);
         return parent::_prepareForm();

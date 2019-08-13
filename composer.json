@@ -3,8 +3,7 @@
     "type": "magento-module",
     "license": "GPL-3.0",
     "homepage": "",
-    "description": "Securely access and process online payments with the NETBANX payment gateway.
-",
+    "description": "Securely access and process online payments with the NETBANX payment gateway",
     "authors": [
     {
         "name": "Demac Media",

@@ -34,5 +34,4 @@ class Demac_Optimal_Model_Config_Transaction extends Mage_Core_Model_Config_Data
             ),
         );
     }
-
 }
