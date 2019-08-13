@@ -157,19 +157,22 @@ class Demac_Optimal_Frontend_OptimalController extends Mage_Core_Controller_Fron
             $orderData['increment_id']      = 0;
             $orderData['customer_email']    = $customerData['email'];
 
+
+            // Start [Refactor] : Pull the order billing and shipping address rather than the customer default address.
             $billingAddressId = $customer->getDefaultBilling();
-            if ($billingAddressId) {
+            if($billingAddressId) {
                 $orderData['billing_address'] = Mage::getModel('customer/address')->load($billingAddressId);
             } else {
                 Mage::throwException($this->__("There was a problem adding the credit card. You must create a billing address first."));
             }
 
             $shippingAddressId = $customer->getDefaultShipping();
-            if ($shippingAddressId) {
+            if($shippingAddressId) {
                 $orderData['shipping_address'] = Mage::getModel('customer/address')->load($shippingAddressId);
             } else {
                 $orderData['shipping_address'] = $orderData['billing_address'];
             }
+            // End Refactor
 
             $orderData['base_tax_amount']               = 0;
             $orderData['base_grand_total']              = 0;
@@ -235,7 +238,9 @@ class Demac_Optimal_Frontend_OptimalController extends Mage_Core_Controller_Fron
                         $cardName = $orderStatus->transaction->card->brand;
                         $profile->setCardNickname(Mage::helper('optimal')->processCardNickname($cardName));
 
-                        $cardHolder = $customerData['firstname'] . ' ' . $customerData['lastname']; // $params['firstname'] . $params['lastname'];
+                        // Start [Refactor] : This is pulling the billing first name / last name instead of the name entered when creating the credit card.
+                        $cardHolder = $customerData['firstname'] . ' ' . $customerData['lastname'];
+                        // End Refactor
                         $profile->setCardHolder($cardHolder);
 
                         // Set Card Info

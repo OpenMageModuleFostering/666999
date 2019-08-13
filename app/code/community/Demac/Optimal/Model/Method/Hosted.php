@@ -182,7 +182,6 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
         if (!$this->canAuthorize()) {
             Mage::throwException(Mage::helper('payment')->__('Authorize action is not available.'));
         }
-
         try {
             $error = false;
             $customerSession = Mage::getSingleton('customer/session');

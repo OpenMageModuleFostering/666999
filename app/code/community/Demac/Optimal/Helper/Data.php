@@ -254,7 +254,7 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         }
         // End Refactor
 
-        if($billingAddress->getCustomerAddressId() === $shippingAddress->getCustomerAddressId())
+        if(!$customerData['is_guest'] && $billingAddress->getCustomerAddressId() === $shippingAddress->getCustomerAddressId())
         {
             $billingDetailsArray['useAsShippingAddress'] = true;
         } else {
