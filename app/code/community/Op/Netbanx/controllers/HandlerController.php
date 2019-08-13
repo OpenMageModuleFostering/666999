@@ -76,6 +76,8 @@ class Op_Netbanx_HandlerController extends Mage_Core_Controller_Front_Action
             $payment->setTransactionId($optimalOrderId);
             // magento will automatically close the transaction on auth preventing the invoice from being captured online.
             $payment->setIsTransactionClosed(true);
+            $payment->setIsTransactionPending(false);
+
             $payment->save();
 
             try {
@@ -172,7 +174,11 @@ class Op_Netbanx_HandlerController extends Mage_Core_Controller_Front_Action
             'Status: ' . $transaction->status .'<br/>'
         );
 
+
         $payment->setStatus('APPROVED');
+
+        $payment->setIsTransactionPending(false);
+
         $payment->setAdditionalInformation('order', serialize(array('id' => $optimalOrderId)));
         $payment->setAdditionalInformation('transaction', serialize($transaction));
         $payment->setTransactionId($optimalOrderId);
@@ -188,6 +194,20 @@ class Op_Netbanx_HandlerController extends Mage_Core_Controller_Front_Action
         }
 
         $payment->save();
+
+
+        $state = Mage_Sales_Model_Order::STATE_NEW;
+        if(Mage::getStoreConfig('payment/optimal_hosted/payment_action') == Op_Netbanx_Model_Method_Hosted::ACTION_AUTHORIZE_CAPTURE) {
+            $invoice = $order->prepareInvoice();
+            $invoice->register();
+            $invoice->setIsPaid(true);
+            $order->addRelatedObject($invoice);
+            $state = Mage_Sales_Model_Order::STATE_PROCESSING;
+            //we need to save invoice?
+        }
+
+        $order->setState($state, true, "Invoice created.");
+        $order->save();
 
         $this->_redirect('checkout/onepage/success');
     }

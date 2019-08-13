@@ -99,6 +99,7 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
      */
     public function assignData($data)
     {
+
         if (!($data instanceof Varien_Object)) {
             $data = new Varien_Object($data);
         }
@@ -149,6 +150,7 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
      */
     public function validate()
     {
+
         $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D', Mage::app()->getStore()->getStoreId());
         $allowInterac = Mage::getStoreConfig('payment/optimal_hosted/allow_interac', Mage::app()->getStore()->getStoreId());
         $info = $this->getInfoInstance();
@@ -191,6 +193,9 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
      */
     public function authorize(Varien_Object $payment, $amount)
     {
+
+        $payment->setIsTransactionPending(true);
+
         if (!$this->canAuthorize()) {
             Mage::throwException(Mage::helper('payment')->__('Authorize action is not available.'));
         }
@@ -507,6 +512,19 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
         return $allowInterac && $useInterac;
     }
 
+    /**
+     * Get config payment action url
+     * Used to universalize payment actions when processing payment place
+     *
+     * @return string
+     */
+    public function getConfigPaymentAction()
+    {
+        // TODO we always pretend we are authorize.. on return we do capture
+        return Mage_Payment_Model_Method_Abstract::ACTION_AUTHORIZE;
+        // return $this->getConfigData('payment_action');
+
+    }
 
     /**
      * Send capture request to gateway
@@ -532,7 +550,6 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                 $result = $this->authorize($payment, $amount);
                 return $result;
             }
-
             $additionalInformation = $payment->getAdditionalInformation();
 
             if (isset($additionalInformation['transaction'])) {
@@ -730,6 +747,7 @@ class Op_Netbanx_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
 
     public function getOrderPlaceRedirectUrl()
     {
+
         return $this->orderRedirectUrl();
     }
 

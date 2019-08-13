@@ -16,6 +16,7 @@ class Op_Netbanx_Model_Observer
      */
     public function salesOrderPlaceAfter(Varien_Event_Observer $observer)
     {
+
         $order      = $observer->getOrder();
         $payment    = $order->getPayment();
 

@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Op_Netbanx>
-            <version>0.5.1</version>
+            <version>0.5.2</version>
         </Op_Netbanx>
     </modules>
 
@@ -181,7 +181,7 @@
                 <!-- model to handle logic for this payment method -->
                 <model>optimal/method_hosted</model>
                 <!-- order status for new orders paid by this payment method -->
-                <order_status>pending</order_status>
+                <order_status>pending_payment</order_status>
                 <!-- default title for payment checkout page and order view page -->
                 <title>Optimal Payments (Hosted)</title>
                 <payment_action>authorize</payment_action>

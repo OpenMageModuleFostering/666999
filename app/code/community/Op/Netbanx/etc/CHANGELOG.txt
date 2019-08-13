@@ -1,3 +1,15 @@
+20151202 - Version 0.5.2
+Shane Harper <sharper@collinsharper.com>
+
+app/code/community/Op/Netbanx/Model/Method/Hosted.php
+app/code/community/Op/Netbanx/Model/Observer.php
+app/code/community/Op/Netbanx/controllers/HandlerController.php
+app/code/community/Op/Netbanx/etc/config.xml
+
+Changed files to resolve autocapturing on hosted site. 
+order status update respectively per auth and auth/cap
+
+
 20151014 - Version 0.5.1
 Chris Harper <charper@collinsharper.com>
 
