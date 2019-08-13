@@ -291,6 +291,7 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
 
                 if (!isset($orderStatus->transaction))
                 {
+                    Mage::log('Transaction Object not present in orderStatus ... ABORT');
                     Mage::throwException('Something went wrong with your transaction. Please contact support.');
                 }
 

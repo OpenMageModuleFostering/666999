@@ -219,6 +219,25 @@
                         </org_id>
                     </fields>
                 </threat_metrix>
+                <error_codes translate="label" module="optimal">
+                    <label>Optimal Payments - Error Codes</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>100</sort_order>
+                    <show_in_default>0</show_in_default>
+                    <show_in_website>0</show_in_website>
+                    <show_in_store>0</show_in_store>
+                    <fields>
+                        <code translate="label">
+                            <label>Error Code</label>
+                            <frontend_type>text</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>12</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </code>
+                    </fields>
+                </error_codes>
             </groups>
         </payment>
     </sections>

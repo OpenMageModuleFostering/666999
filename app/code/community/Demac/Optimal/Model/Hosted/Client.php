@@ -201,31 +201,19 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
     {
 
         $response = json_decode($this->_callApi($url,$method,$data));
-        $defaultError = 'Something went wrong with your transaction. Please contact support.';
 
         if (isset($response->error)) {
             Mage::helper('optimal')->cleanMerchantCustomerId(Mage::getSingleton('customer/session')->getId());
             $message = $this->_getMsgByCode($response->error->code);
-            if ($message === null) {
-                if (isset($response->error->message)) {
-                    $message = $response->error->message;
-                } else {
-                    $message = $defaultError;
-                }
-            }
+            $message = ($message !== null) ? $message : $response->error->message;
 
             throw new Demac_Optimal_Model_Hosted_Exception($message);
+            return false;
         }
 
         if (isset($response->transaction->errorCode)) {
             $message = $this->_getMsgByCode($response->transaction->errorCode);
-            if ($message === null) {
-                if (isset($response->transaction->errorMessage)) {
-                    $message = $response->transaction->errorMessage;
-                } else {
-                    $message = $defaultError;
-                }
-            }
+            $message = ($message !== null) ? $message : $response->transaction->errorMessage;
 
             $session = Mage::getSingleton('customer/session');
             if (!$session->getCustomerId()) {
@@ -234,6 +222,7 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
             Mage::helper('optimal')->cleanMerchantCustomerId(Mage::getSingleton('customer/session')->getId());
 
             throw new Demac_Optimal_Model_Hosted_Exception($message);
+            return false;
         }
 
         return $response;
@@ -313,7 +302,8 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
             Mage::logException($e);
             return false;
         }
-
+        Mage::log('OPTIMAL RESPONSE (_callApi):');
+        Mage::log($curl_response);
         return $curl_response;
     }
 
@@ -347,6 +337,8 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
             curl_setopt($curl,CURLOPT_POSTFIELDS, $data_string);
             $curl_response = curl_exec($curl);
 
+            Mage::log('OPTIMAL RESPONSE (submitPayment):');
+            Mage::log($curl_response);
             curl_close($curl);
             return true;
 

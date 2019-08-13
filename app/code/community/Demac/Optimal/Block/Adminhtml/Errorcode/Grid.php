@@ -44,9 +44,18 @@ class Demac_Optimal_Block_Adminhtml_Errorcode_Grid extends Mage_Adminhtml_Block_
             'align'     => 'left',
             'index'     => 'active',
             'type'      => 'options',
-            'options'   => Mage::getModel('adminhtml/system_config_source_yesno')->toArray()
+            'options'   => $this->_yesNoArray()
         ));
 
         return parent::_prepareColumns();
     }
+
+    protected function _yesNoArray()
+    {
+        return array(
+            0 => Mage::helper('adminhtml')->__('No'),
+            1 => Mage::helper('adminhtml')->__('Yes'),
+        );
+    }
+
 }
