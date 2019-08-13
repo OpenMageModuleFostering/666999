@@ -346,7 +346,6 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         // Shopping Cart Information
         foreach($orderItems as $item)
         {
-            $itemAmountTotal += (float) $item->getBasePrice();
             $itemArray = array(
                 'amount'        => (int) $this->formatAmount($item->getBasePrice()),
                 'quantity'      => (int) $item->getQtyOrdered(),
