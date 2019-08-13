@@ -202,46 +202,23 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
 
         $response = json_decode($this->_callApi($url,$method,$data));
 
-        if (isset($response->error)) {
+        if(isset($response->error))
+        {
             Mage::helper('optimal')->cleanMerchantCustomerId(Mage::getSingleton('customer/session')->getId());
-            $message = $this->_getMsgByCode($response->error->code);
-            $message = ($message !== null) ? $message : $response->error->message;
-
-            throw new Demac_Optimal_Model_Hosted_Exception($message);
+            Mage::throwException($response->error->message);
             return false;
         }
-
-        if (isset($response->transaction->errorCode)) {
-            $message = $this->_getMsgByCode($response->transaction->errorCode);
-            $message = ($message !== null) ? $message : $response->transaction->errorMessage;
-
+        if(isset($response->transaction->errorCode))
+        {
             $session = Mage::getSingleton('customer/session');
             if (!$session->getCustomerId()) {
-                Mage::getSingleton('customer/session')->addError($message);
+                Mage::getSingleton('customer/session')->addError($response->transaction->errorMessage);
             }
             Mage::helper('optimal')->cleanMerchantCustomerId(Mage::getSingleton('customer/session')->getId());
-
-            throw new Demac_Optimal_Model_Hosted_Exception($message);
+            Mage::throwException($response->transaction->errorMessage);
             return false;
         }
-
         return $response;
-    }
-
-    /**
-     * Returns 'Default' Error message if message by Code is not found
-     *
-     * @param null $code
-     * @return null|string
-     */
-    protected function _getMsgByCode($code = null)
-    {
-        $message = Mage::helper('optimal')->getMsgByCode($code);
-        if ($message !== null) {
-            return $message;
-        }
-
-        return null;
     }
 
     /**

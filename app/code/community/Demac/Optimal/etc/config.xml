@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Demac_Optimal>
-            <version>0.3.5</version>
+            <version>0.3.6</version>
         </Demac_Optimal>
     </modules>
 
@@ -96,9 +96,6 @@
                     <merchant_customer>
                         <table>demac_optimal_merchant_customer</table>
                     </merchant_customer>
-                    <errorcode>
-                        <table>demac_optimal_error_code</table>
-                    </errorcode>
                 </entities>
             </optimal_mysql4>
             <sales>

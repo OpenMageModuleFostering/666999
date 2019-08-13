@@ -178,7 +178,7 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
                 break;
         }
 
-        $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D');
+        $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3d');
 
         if($skip3d)
         {
@@ -374,23 +374,6 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
 
         return $data;
 
-    }
-
-    public function getMsgByCode($code = null)
-    {
-        $model = Mage::getModel('optimal/errorcode')->loadByCode($code);
-        if (!$model->getCode()) {
-            return null;
-        }
-
-        $msg = $model->getMessage();
-        $customMsg = $model->getCustomMessage();
-
-        if ($model->getActive() == 1) {
-            return $customMsg ? $customMsg : $msg;
-        }
-
-        return $msg;
     }
 
 }

@@ -25,7 +25,7 @@ class Demac_Optimal_Block_Info_Creditcard extends Mage_Payment_Block_Info_Cc
             }
         }
 
-        if(isset($profile)) {
+        if($profile) {
 
             $info = array(
                 'name' => $profile->getCardHolder(),

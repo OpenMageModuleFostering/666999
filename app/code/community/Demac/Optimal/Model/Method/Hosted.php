@@ -182,7 +182,6 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
         if (!$this->canAuthorize()) {
             Mage::throwException(Mage::helper('payment')->__('Authorize action is not available.'));
         }
-
         try {
             $error = false;
             $customerSession = Mage::getSingleton('customer/session');
@@ -277,7 +276,7 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
             if(isset($postURL)) {
                 $paymentData = $this->_preparePayment($payment->getData());
 
-                if(isset($customerData['profile_id']))
+                if($customerData['profile_id'])
                 {
                     unset($paymentData['cardNum']);
                     unset($paymentData['cardExpiryMonth']);
@@ -287,14 +286,7 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                 }
 
                 $paymentResponse    = $client->submitPayment($postURL,$paymentData);
-                $orderStatus        = $this->_getOptimalOrderStatus($client, $response->id);
-
-                if (!isset($orderStatus->transaction))
-                {
-                    Mage::log('Transaction Object not present in orderStatus ... ABORT');
-                    Mage::throwException('Something went wrong with your transaction. Please contact support.');
-                }
-
+                $orderStatus        = $client->retrieveOrder($response->id);
                 $transaction        = $orderStatus->transaction;
 
                 // Now we need to check the payment status if the transaction is available
@@ -392,26 +384,6 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
         }
 
         return $fPaymentData;
-    }
-    
-    protected function _getOptimalOrderStatus($client, $id, $counter = 0)
-    {
-    	if($counter >= 3){
-    		Mage::throwException('There was a problem retrieving the order information. Please contact support.');
-    	}
-    	
-        Mage::log('Get-Optimal-Order-Status Try #: ' . ($counter + 1));
-
-    	try{
-    	   return $client->retrieveOrder($id);
-    	} catch (Demac_Optimal_Model_Hosted_Exception $e) { // in case when Error is generated from Optimal
-            Mage::throwException($e->getMessage());
-            return;
-        } catch(Exception $e) {
-    		$counter++;
-    		$this->_getOptimalOrderStatus($client, $id, $counter);
-    	}
-    	
     }
 
 
