@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Demac_Optimal>
-            <version>0.3.2</version>
+            <version>0.3.3</version>
         </Demac_Optimal>
     </modules>
 
@@ -98,6 +98,11 @@
                     </merchant_customer>
                 </entities>
             </optimal_mysql4>
+            <sales>
+                <rewrite>
+                    <order>Demac_Optimal_Model_Sales_Order</order>
+                </rewrite>
+            </sales>
         </models>
         <blocks>
             <optimal>
@@ -130,6 +135,17 @@
                 </connection>
             </optimal_read>
         </resources>
+        <events>
+            <order_unhold_after>
+                <observers>
+                    <optimal_hosted_order_unhold_after>
+                        <type>singleton</type>
+                        <class>Demac_Optimal_Model_Observer</class>
+                        <method>orderUnoldAfter</method>
+                    </optimal_hosted_order_unhold_after>
+                </observers>
+            </order_unhold_after>
+        </events>
     </global>
 
     <admin>

@@ -425,6 +425,18 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
 
                 $client = Mage::getModel('optimal/hosted_client', array('store_id' => $order->getStoreId()));
 
+                $transactionStatus = $client->retrieveOrder($orderData['id']);
+
+                if ($transactionStatus->transaction->status == 'held')
+                {
+                    // Prepare api order update
+                    $transactionData = array(
+                        'transaction' => array(
+                            'status' => 'success'
+                        )
+                    );
+                    $response = $client->updateOrder($transactionData, $orderData['id']);
+                }
 
                 $data = array(
                     'amount' => (int)$helper->formatAmount($amount),
@@ -476,7 +488,24 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                 $paymentData    = unserialize($additionalInformation['transaction']);
                 $orderData      = unserialize($additionalInformation['order']);
 
-                $response = $client->cancelOrder($orderData['id']);
+                $transactionStatus = $client->retrieveOrder($orderData['id']);
+
+                if ($transactionStatus->transaction->status == 'held')
+                {
+                    // Prepare api order update
+                    $data = array(
+                        'transaction' => array(
+                            'status' => 'cancelled'
+                        )
+                    );
+
+                    $response = $client->updateOrder($data, $orderData['id']);
+
+                } elseif($transactionStatus->transaction->status == 'success') {
+                    $response = $client->cancelOrder($orderData['id']);
+                } else {
+                    Mage::throwException('Unable to void transaction. Please contact support@demacmedia.com');
+                }
 
                 $payment
                     ->setIsTransactionClosed(1)
@@ -484,6 +513,7 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
 
 
                 $order->addStatusHistoryComment(
+                    'Transaction Voided <br/>' .
                     'Trans Type: ' . $response->authType .'<br/>'.
                     'Confirmation Number: ' . $response->confirmationNumber .'<br/>'.
                     'Transaction Amount: ' . $response->amount/100 .'<br/>'

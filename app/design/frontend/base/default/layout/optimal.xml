@@ -2,7 +2,7 @@
 <layout version="0.1.0"> i
     <checkout_onepage_index translate="label" module="page">
         <reference name="before_body_end">
-            <block type="optimal/threat" template="demac/threatmeter.phtml" name="optimal_threat" as="optimal_threat"/>
+            <block type="optimal/threat" template="optimal/threatmeter.phtml" name="optimal_threat" as="optimal_threat"/>
         </reference>
     </checkout_onepage_index>
 
