@@ -1,0 +1,15 @@
+<?php if($this->isThreatMetrixActive()): ?>
+
+<!-Begin ThreatMetrix profiling tags below -->
+<p style="background:url('<?php echo $this->getThreatMetrixUrl(1) ?>')"></p>
+<img src="<?php echo $this->getThreatMetrixUrl(2) ?>" alt="" >
+
+<script src="<?php echo $this->getThreatMetrixUrl() ?>" type="text/javascript">
+</script>
+
+<object type="application/x-shockwave-flash" data="<?php echo $this->getThreatMetrixUrl() ?>" width="1" height="1" id="obj_id">
+    <param name="movie" value="<?php echo $this->getThreatMetrixUrl() ?>" />
+</object>
+<!- End profiling tags -->
+
+<?php endif; ?>

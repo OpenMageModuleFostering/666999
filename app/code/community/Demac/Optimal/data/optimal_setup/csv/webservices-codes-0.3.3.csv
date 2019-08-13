@@ -1,0 +1,174 @@
+0,No Error
+53,Internal Error
+58,Your merchant account is not configured for the transaction type requested
+802,Authentication declined.
+809,3D secure service not available.
+1000,An internal error occurred. Please contact Technical Support before retrying the transaction.
+1001,An error occurred with the external processing gateway. Please retry the transaction.
+1002,An internal error occurred. Please retry the transaction.
+1007,An internal error occurred. Please retry the transaction.
+2500,A suitable merchant account could not be found for this request. Do not retry the transaction. Contact Technical Support for more information.
+2501,An internal error occurred. Do not retry the transaction. Contact Technical Support for more information.
+2502,The authentication failed for your transaction request. Either your credentials were entered incorrectly or your request was tampered with.  Please verify your request and retry the transaction.
+2503,You submitted an invalid shop ID. It must be a numeric value.
+2504,You submitted a shop ID for which a shop does not exist. Please verify your parameters and retry the transaction.
+2505,No merchant account could be found for the currency you submitted. Please verify your parameters and retry the transaction.
+2506,More than one merchant account was found for the currency you submitted. Please provide a merchant account number and retry the request.
+2507,The merchant account submitted does not correspond to the shop ID you submitted. Please verify your parameters and retry the transaction.
+2508,You submitted a request that is missing the encodedMessage parameter. Please verify your parameters and retry the transaction.
+2509,You submitted a request that has an invalid encodedMessage parameter. The encodedMessage could not be base64 decoded. Please verify your parameters and retry the request.
+2510,You submitted an invalid XML request. Please verify your request and retry the transaction.
+2511,An internal error occurred. Please retry the transaction. Contact Technical Support if the error persists.
+2512,You submitted a request that is missing the signature parameter. Please verify your parameters and retry the transaction.
+2513,You submitted a request that is missing the Shop ID parameter. Please verify your parameters and retry the transaction.
+2514,An internal error occurred. Your merchant credentials could not be found. Do not retry the transaction. Contact Technical Support for more information.
+2515,An internal error occurred. Please retry the transaction.
+2516,An internal error occurred. Do not retry the transaction. Please contact Technical Support.
+2517,An internal error occurred. Do not retry the transaction. Please contact Technical Support.
+2518,An internal error occurred. Please retry the transaction. Contact Technical Support if the error persists.
+2519,You submitted a request for a shop that is disabled. Do not retry the transaction.
+2520,The cartItem and feeItem amounts do not equal the totalAmount. Please verify your parameters and retry the transaction.
+2521,An internal error occurred. Your shop is not configured properly. Do not retry the transaction. Contact Technical Support for more information.
+2523,An internal error occurred. Please retry the transaction. Contact Technical Support if the error persists.
+2524,An internal error occurred. The customer profile is not configured properly. Do not retry the transaction. Contact Technical Support for more information.
+2525,The customer profile associated with the token provided could not be located. Please verify your parameters and retry the transaction.
+2526,An internal profile management error occurred and your request could not be processed. Please retry the transaction. Contact Technical Support if the error persists.
+2527,You submitted a request with an unsupported locale. Please verify your parameters and retry the transaction.
+2528,You submitted a request with a merchant customer ID that is not associated with the customer token provided. Please verify your parameters and retry the transaction.
+2529,An internal error occurred. Please retry the transaction.
+2530,An internal error occurred. Do not retry the transaction. Contact Technical Support for more information.
+2531,A customer profile with the same merchant customer ID already exists. Please verify your parameters and retry the transaction.
+2532,Your shop is not configured to process any payments. Do not retry the transaction. Contact Technical Support for more information.
+2533,Your shop is not configured to process the selected payment method. Do not retry the transaction. Contact Technical Support for more information.
+2534,The customer profile associated with the token you provided is not active. Please verify your parameters and ensure the customer status is active and retry the transaction.
+2535,The customer profile associated with the token you provided has a bank account that is not validated. Please verify your parameters or have your customer validate their account and retry the transaction.
+2536,The transaction was declined because the maximum number of attempts has been reached. Do not retry the transaction.
+2537,The bank account validation failed because the maximum number of attempts has been reached. Do not retry the transaction.
+2538,The customer entered an invalid micro deposit amount.
+2539,An internal error occurred. Please retry the transaction. Contact Technical Support if the error persists.
+2540,The merchant reference number already exists. Please verify your parameters and retry the transaction.
+2541,An internal error occurred when sending the micro deposit transaction. Please retry the transaction. Contact Technical Support if the error persists.
+2542,The customer profile validation failed the AVS check.
+2543,The customer has a status that cannot be validated. Please reset the customer status before retrying the transaction.
+2544,The customer profile does not have the credit card information required for validation.
+2545,The customer tried to register an EFT bank account that is already used by another customer. Do not retry the transaction.
+2546,The customer tried to register a credit card that is already used by another customer. Do not retry the transaction.
+2600,You submitted a request that is missing the merchantCustomerId parameter. Please verify your parameters and retry the transaction.
+2601,You submitted an invalid request. The customer token was provided but the newCustomer flag was set to true. Please verify your parameters and retry the transaction.
+2602,You submitted an invalid request. The customer token was not provided but the newCustomer flag was set to false. Please verify your parameters and retry the transaction.
+2603,You submitted an invalid request. The customer profile already exists but the newCustomer flag was set to true. Please verify your parameters and retry the transaction.
+2701,The Equifax validation was accepted with the condition that the customer's request should be verified.
+2702,An internal error has occurred while processing an Equifax transaction. Retry the transaction. Contact Technical Support if the error persists.
+2703,Some or all of the Equifax databases are down. Retry the transaction. Contact Technical Support if the error persists.
+2704,The Equifax validation was rejected. Do not retry the transaction.
+2705,The Equifax validation was rejected and should be treated manually. The merchant can contact the customer directly.
+2706,The Equifax validation was rejected due to invalid input. Please verify your parameters and retry the transaction.
+2707,The Equifax validation was rejected due to an invalid address. Please verify your parameters and retry the transaction.
+2708,An internal error occurred. The Equifax response codes are missing. Please verify your parameters and retry the transaction.
+3001,You submitted an unsupported card type with your request. Please verify this parameter and retry the transaction.
+3002,You submitted an invalid card number or brand or combination of card number and brand with your request. Please verify these parameters and retry the transaction.
+3003,You submitted an incorrect value for the cvdIndicator parameter with your request. Please verify this parameter and retry the transaction.
+3004,You have requested an AVS check. Please ensure that the zip/postal code is provided.
+3005,You submitted an incorrect value for the cvdValue parameter with your request. Please verify this parameter and retry the transaction.
+3006,You submitted an expired credit card number with your request. Please verify this parameter and retry the request.
+3007,Your request has failed the AVS check. Note that the amount has still been reserved on the customer's card and will be released in 3-5 business days. Please ensure the billing address is accurate before retrying the transaction.
+3008,You submitted a card type for which the merchant account is not configured.
+3009,Your request has been declined by the issuing bank.
+3010,The consumer is attempting a purchase for more than the balance available in their FirePay account.
+3011,Your request has been declined by the issuing bank because the card used is a restricted card. Contact the cardholder's credit card company for further investigation.
+3012,Your request has been declined by the issuing bank because the credit card expiry date submitted is invalid.
+3013,Your request has been declined by the issuing bank due to problems with the credit card account.
+3014,Your request has been declined - the issuing bank has returned an unknown response. Contact the card holder's credit card company for further investigation.
+3015,The bank has requested that you process the transaction manually by calling the cardholder's credit card company.
+3016,The bank has requested that you retrieve the card from the cardholder - it may be a lost or stolen card.
+3017,You submitted an invalid credit card number with your request. Please verify this parameter and retry the transaction.
+3018,The bank has requested that you retry the transaction.
+3019,Your request has failed the CVD check. Please note that the amount has still been reserved on the customer's card and will be released in 3 to 5 business days. Please ensure the CVD value is accurate before retrying the transaction.
+3020,The bank has requested that you retry the transaction.
+3021,The confirmation number included in this request could not be found. Please verify this parameter and retry the transaction.
+3022,The card has been declined due to insufficient funds.
+3023,Your request has been declined by the issuing bank due to its proprietary card activity regulations.
+3024,Your request has been declined because the issuing bank does not permit the transaction for this card.
+3025,The external processing gateway has reported invalid data. Please verify your parameters and retry the transaction.
+3026,The external processing gateway has reported the account type is invalid. Do not retry the transaction. Contact Technical Support for more information.
+3027,The external processing gateway has reported a limit has been exceeded. Do not retry the transaction.
+3028,The external processing gateway has reported a system error. Please retry the transaction.
+3029,The external processing gateway has rejected the transaction. Do not retry the transaction. Contact Technical Support for more information.
+3030,The external processing gateway has reported the transaction is unauthorized. Do not retry the transaction. Contact Technical Support for more information.
+3031,The confirmation number you submitted with your request references a transaction that is not on hold. Please verify this parameter and retry the transaction.
+3200,You have submitted an invalidly formatted authorization ID for this settlement. Please verify this parameter and retry the transaction.
+3201,The authorization ID included in this settlement request could not be found. Please verify this parameter and retry the transaction.
+3202,You have exceeded the maximum number of settlements allowed.
+3203,The authorization is either fully settled or cancelled.
+3204,The requested settlement amount exceeds the remaining authorization amount.
+3205,The authorization you are attempting to settle has expired.
+3206,The external processing gateway has rejected the transaction. Do not retry the transaction. Contact Technical Support for more information.
+3402,The requested credit amount exceeds the remaining settlement amount.
+3403,You have already processed the maximum number of credits allowed for this settlement.
+3404,The settlement has already been fully credited.
+3405,The settlement you are attempting to credit has expired.
+3406,The settlement you are attempting to credit has not been batched yet. There are no settled funds available to credit.
+3407,The settlement referred to by the transaction response ID you provided cannot be found. Please verify this parameter and retry the transaction.
+3408,You have submitted an invalidly formatted response ID for the original purchase or settlement. Please verify this parameter and retry the transaction.
+3409,The authorization ID included in this credit request could not be found. Please verify this parameter and retry the transaction.
+3410,Credit failed.
+3411,Cancel credit failed.
+3412,The Credit transaction you attempted was not permitted because your merchant account is in overdraft. 
+3413,The requested Credit amount exceeds the permissible Visa credit ratio. Please verify this parameter and retry the transaction.
+3414,The credit referred to by the transaction response ID you provided cannot be found. Please verify this parameter and retry the transaction.
+3415,You cannot cancel this transaction. It is not in a state that can be cancelled. It may already have been completed and therefore not be in a pending state.
+3416,"The external processing gateway for which your merchant account is configured does not support partial settlements. Ensure that the amount you are trying to settle is identical to the amount in the original authorization, and retry the transaction."
+3500,The confirmation number included in this request could not be found. Please verify this parameter and retry the transaction.
+3501,The requested authorization reversal amount exceeds the remaining authorization amount.
+3502,The authorization has already been settled. You cannot process an authorization reversal transaction against an authorization that has been settled.
+3503,The authorization reversal transaction is not supported for the card type used for the authorization you are attempting to reverse.
+3504,The external processing gateway for which your merchant account is configured does not support partial authorization reversals. Ensure that the amount you are trying to reverse is identical to the amount in the original authorization and retry the transaction.
+3505,Unable to complete authorization reversal. Contact Technical Support for more information.
+3506,Reversal amount is over the authorization remaining amount. Manual intervention require.
+3601,The 3D Secure authentication of this cardholder by the card issuer failed.
+3602,The confirmation number included in the 3D Secure authentication request could not be found. The confirmation number must be the one returned by the payment processor in response to the original authorization or purchase.
+3603,You submitted a request that is not available for 3D Secure authentication.
+3604,The original authorization or purchase request has expired. The 3D Secure authentication request must be completed within 60 minutes of the original authorization or purchase.
+3605,The 3D Secure authentication service not available for the card used in this transaction. 
+3701,The confirmation number included in this request could not be found. Please verify this parameter and retry the transaction.
+3702,You cannot cancel this payment transaction. It is not in a state that can be cancelled. It may already have been completed and therefore not be in a pending state.
+4001,The card number or email address associated with this transaction is in our negative database.
+4002,The transaction was declined by our Risk Management department.
+5000,Your merchant account authentication failed. Either your store ID/password are invalid or the IP address from which you are sending the transaction has not been authorized. Please verify these parameters and retry the transaction. Please contact Technical Support if the error persists.
+5002,You submitted an invalid payment method with your request. Please verify this parameter and retry the transaction.
+5003,You submitted an invalid amount with your request. Please verify this parameter and retry the transaction.
+5007,You submitted an invalid product type with your request. Please verify this parameter and retry the transaction.
+5008,You submitted an invalid carrier with your request. Please verify this parameter and retry the transaction.
+5009,You submitted an invalid ship method with your request. Please verify this parameter and retry the transaction.
+5015,Exceeded the maximum field length allowed. Please verify your parameters and retry the transaction.
+5016,Either you submitted an invalid merchant account or the merchant account could not be found. Please verify this parameter and retry the transaction. Please contact Technical Support if the error persists. 
+5017,The merchant account submitted with your request is not enabled. Do not retry the transaction. Contact Technical Support for more information.
+5018,You submitted a request that is missing a mandatory field. Please verify your parameters and retry the transaction.
+5023,You submitted an invalid XML request. Please verify your request and retry the transaction.
+5024,You submitted an invalid ID expiry date for this request. Please verify this parameter and retry the transaction.
+5031,The transaction you have submitted has already been processed.
+5032,You submitted an invalid city with your request. Please verify this parameter and retry the transaction.
+5033,You submitted an invalid country with your request. Please verify this parameter and retry the transaction.
+5034,You submitted an invalid email address with your request. Please verify this parameter and retry the transaction.
+5035,You submitted an invalid name with your request. Please verify this parameter and retry the transaction.
+5036,You submitted an invalid phone number with your request. Please verify this parameter and retry the transaction.
+5037,You submitted an invalid zip/postal code with your request. Please verify this parameter and retry the transaction.
+5038,You submitted an invalid state/province with your request. Please verify this parameter and retry the transaction.
+5039,You submitted an invalid street with your request. Please verify this parameter and retry the transaction.
+5040,Your merchant account is not configured for the transaction you attempted. Please contact Technical Support for more information.
+5041,You submitted an invalid merchantData parameter. Please verify this parameter and retry the transaction.
+5042,The merchant reference number is missing or invalid or it exceeds the maximum permissible length. Please verify this parameter and retry the transaction.
+5043,You submitted an invalid account open date with your request. Please verify this parameter and retry the transaction.
+5044,You submitted an invalid customer ID with your request. Please verify this parameter and retry the transaction.
+5045,You submitted an invalid customer IP address with your request. Please verify this parameter and retry the transaction.
+5046,You submitted an invalid merchant SIC code with your request. Please verify this parameter and retry the transaction.
+5047,You submitted an invalid value for the previous customer parameter with your request. Please verify this parameter and retry the transaction.
+5048,You submitted an invalid product code with your request. Please verify this parameter and retry the transaction.
+5049,You submitted an invalid value for user data with your request. Please verify this parameter and retry the transaction.
+5050,An error occurred with your merchant account configuration. Please contact Technical Support.
+5055,You submitted an invalid ECI value. Please verify this parameter and retry the transaction.
+5056,An ECI value must be provided for 3D Secure authentication Please verify this parameter and retry the transaction.
+5057,You submitted a credit card brand that does not support 3D Secure authentication. Please verify this parameter and retry the transaction.
+5058,A CAVV value must be be provided for 3D Secure authentication. Please verify this parameter and retry the transaction.
+5059,You submitted an invalid value for the currency service request.
+5060,You submitted an invalid recurringIndicator parameter with your request. Please verify this parameter and retry the transaction.

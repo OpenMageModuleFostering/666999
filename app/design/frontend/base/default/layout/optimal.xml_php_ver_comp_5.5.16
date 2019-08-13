@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<layout version="0.1.0"> i
+    <checkout_onepage_index translate="label" module="page">
+        <reference name="before_body_end">
+            <block type="optimal/threat" template="optimal/threatmeter.phtml" name="optimal_threat" as="optimal_threat"/>
+        </reference>
+    </checkout_onepage_index>
+
+    <customer_account>
+        <reference name="customer_account_navigation">
+            <action method="addLink" ifconfig="payment/optimal_profiles/active">
+                <name>optimal_profiles</name>
+                <path>customer/optimal/index</path>
+                <label>Manage Credit Cards</label>
+            </action>
+        </reference>
+    </customer_account>
+
+    <customer_optimal_index translate="label">
+        <label>Customer Manage Credit Cards</label>
+        <update handle="customer_account"/>
+        <!-- Mage_Customer -->
+        <reference name="root">
+            <action method="setTemplate"><template>page/2columns-left.phtml</template></action>
+        </reference>
+        <reference name="my.account.wrapper">
+            <block type="optimal/customer_cards" name="optimal_customer_cards" template="optimal/customer/cards.phtml">
+                <block type="optimal/customer_cards_grid" name="optimal_customer_cards_grid" as="card_grid" template="optimal/customer/cards/grid.phtml"/>
+                <block type="optimal/customer_cards_form" name="optimal_customer_cards_form" as="card_form" template="optimal/customer/cards/form.phtml"/>
+            </block>
+        </reference>
+    </customer_optimal_index>
+</layout>
