@@ -2,6 +2,7 @@
 
 $installer = $this;
 $installer->startSetup();
+
 $installer->run("
 
 DROP TABLE IF EXISTS `{$this->getTable('optimal/risk')}`;
@@ -18,7 +19,6 @@ CREATE TABLE IF NOT EXISTS `{$this->getTable('optimal/risk')}` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ");
-
 $installer->run("
 
 DROP TABLE IF EXISTS `{$this->getTable('optimal/creditcard')}`;
