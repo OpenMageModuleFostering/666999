@@ -105,6 +105,8 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
 
         $profileId = $data->getProfileId();
 
+        $info->setOptimalUseInterac($data->getOptimalUseInterac());
+
         if(isset($profileId) && ($profileId != 0)) {
             $profile = Mage::getModel('optimal/creditcard')
                 ->load($profileId, 'entity_id');
@@ -134,6 +136,7 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                 ->setCcSsStartYear($data->getCcSsStartYear())
                 ->setOptimalCreateProfile($data->getOptimalCreateProfile());
         }
+
         return $this;
     }
 
@@ -146,12 +149,14 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
     public function validate()
     {
         $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D', Mage::app()->getStore()->getStoreId());
+        $allowInterac = Mage::getStoreConfig('payment/optimal_hosted/allow_interac', Mage::app()->getStore()->getStoreId());
+        $info = $this->getInfoInstance();
+        $last4 = $info->getData('cc_last4');
 
-        if (!$skip3d) {
+        if ((!$skip3d || $allowInterac) && empty($last4)) { // Do not require Credit Card info if NOT skipping 3D verification or when payment method is Interac
             return $this;
         }
 
-        $info = $this->getInfoInstance();
         $errorMsg = false;
         $availableTypes = explode(',',$this->getConfigData('cctypes'));
 
@@ -235,8 +240,18 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
 
             $paymentData = $payment->getData();
 
-            if(isset($paymentData['optimal_create_profile'])){
+            $skip3d         = Mage::getStoreConfig('payment/optimal_hosted/skip3D', Mage::app()->getStore()->getStoreId());
+            $allowInterac   = Mage::getStoreConfig('payment/optimal_hosted/allow_interac', Mage::app()->getStore()->getStoreId());
+
+            if (isset($paymentData['optimal_create_profile'])) {
                 $createProfile = $paymentData['optimal_create_profile'];
+            }
+
+            $useInterac = false;
+            if ($this->_useInterac($quote)) {
+                $orderData['use_interac'] = 1;
+                $createProfile = false;
+                $useInterac = true;
             }
 
             $checkoutMethod = Mage::getSingleton('checkout/type_onepage')->getCheckoutMethod();
@@ -290,9 +305,8 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                 Mage::throwException($this->__("There was a problem creating the order"));
             }
 
-            $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D', Mage::app()->getStore()->getStoreId());
             // Redirect the Customer if 3D-Secure verification is turned on
-            if (isset($postURL) && !$skip3d) {
+            if (isset($postURL) && (!$skip3d || ($allowInterac && $useInterac))) {
 
                 try {
                     $order->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT);
@@ -361,7 +375,9 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                 if($createProfile){
                     if(isset($orderStatus->profile)){
                         $profile = Mage::getModel('optimal/creditcard');
-                        $merchantCustomerId = $orderStatus->profile->merchantCustomerId;
+                        if (isset($orderStatus->profile->merchantCustomerId)) {
+                            $merchantCustomerId = $orderStatus->profile->merchantCustomerId;
+                        }
 
                         if(!isset($merchantCustomerId))
                         {
@@ -467,6 +483,15 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
             $this->_getOptimalOrderStatus($client, $id, $counter);
         }
 
+    }
+
+    protected function _useInterac($quote) {
+        $quotePayment = $quote->getPayment();
+        $useInterac = $quotePayment->getOptimalUseInterac();
+
+        $allowInterac = Mage::getStoreConfig('payment/optimal_hosted/allow_interac', Mage::app()->getStore()->getStoreId());
+
+        return $allowInterac && $useInterac;
     }
 
 

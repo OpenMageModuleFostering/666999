@@ -45,9 +45,17 @@ class Demac_Optimal_Block_Form_Creditcard extends Mage_Payment_Block_Form_Cc
         $customerId = $session->getId();
         if (isset($customerId))
         {
+            $merchCustId = Mage::helper('optimal')->getMerchantCustomerId($customerId);
+            if (!$merchCustId) {
+                return false;
+            }
+
+            $merchantCustomerId = $merchCustId['merchant_customer_id'];
+
             $profiles = Mage::getModel('optimal/creditcard')
                 ->getCollection()
                 ->addFieldToFilter('customer_id', $customerId)
+                ->addFieldToFilter('merchant_customer_id', $merchantCustomerId)
                 ->addFieldToFilter('is_deleted', false);
 
             if($profiles->count() >= 1)
@@ -57,7 +65,14 @@ class Demac_Optimal_Block_Form_Creditcard extends Mage_Payment_Block_Form_Cc
             }
         }
 
+        $this->profiles = array();
+
         return false;
+    }
+
+    public function getStoreId()
+    {
+        return Mage::app()->getStore()->getStoreId();
     }
 
     /**
@@ -68,12 +83,22 @@ class Demac_Optimal_Block_Form_Creditcard extends Mage_Payment_Block_Form_Cc
     public function canSaveProfiles()
     {
         $session = Mage::getSingleton('customer/session');
-        $profilesEnabled = Mage::getStoreConfig('payment/optimal_profiles/active',$this->getStore());
+        $profilesEnabled = Mage::getStoreConfig('payment/optimal_profiles/active', $this->getStoreId());
         $checkoutMethod = Mage::getModel('checkout/cart')->getQuote()->getCheckoutMethod();
         if (($session->getCustomerId() || $checkoutMethod == 'register') && $profilesEnabled)
         {
             return true;
         }
         return false;
+    }
+
+    public function skip3D()
+    {
+        return Mage::getStoreConfig('payment/optimal_hosted/skip3D', $this->getStoreId());
+    }
+
+    public function allowInterac()
+    {
+        return Mage::getStoreConfig('payment/optimal_hosted/allow_interac', $this->getStoreId());
     }
 }

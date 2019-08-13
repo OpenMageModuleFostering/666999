@@ -50,10 +50,6 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         $customer->setDataChanges(true); // force save in case we need to save just the ID.
         $customer->save();
 
-        $cData = Mage::getModel('optimal/merchant_customer')->getCollection()
-            ->addFieldToFilter('customer_id', $customer_id)
-            ->getFirstItem();
-
         return $this->processMerchantCustomerId($customer);
     }
 
@@ -98,6 +94,7 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         $orderItems         = $orderData['order_items'];
         $billingAddress     = $orderData['billing_address'];
         $shippingAddress    = $orderData['shipping_address'];
+        $storeId            = Mage::app()->getStore()->getStoreId();
 
         // Order extended options
         $extendedOptionsArray = array();
@@ -106,15 +103,25 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         $data = array(
             'totalAmount'               => (int) $this->formatAmount($orderData['base_grand_total']),
             'currencyCode'              => (string) $orderData['base_currency_code'],
-            'merchantRefNum'            => (string) $orderData['increment_id'] . time(),
+            'merchantRefNum'            => (string) $orderData['increment_id'] . time()
         );
 
-        if(strlen(Mage::getStoreConfig('payment/optimal_hosted/merchant_email')) > 0) {
+        $useInterac = false;
+        if (isset($orderData['use_interac'])) {
+            $useInterac = $orderData['use_interac'];
+            unset($orderData['use_interac']);
+        }
+
+        if ($useInterac) {
+            $data['paymentMethod'] = array('interac');
+        }
+
+        if(strlen(Mage::getStoreConfig('payment/optimal_hosted/merchant_email', $storeId)) > 0) {
             $data['merchantNotificationEmail'] = Mage::getStoreConfig('payment/optimal_hosted/merchant_email');
         }
 
         $data['customerNotificationEmail'] = (string) $orderData['customer_email'];
-        if(Mage::getStoreConfig('payment/optimal_hosted/email_customer') != 1) {
+        if(Mage::getStoreConfig('payment/optimal_hosted/email_customer', $storeId) != 1) {
             $extendedOptionsArray[] = array(
                 'key'       => (string) 'suppressCustomerEmail',
                 'value'     => true
@@ -133,8 +140,8 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         $customerProfile['firstName']   = (string) $customerData['firstname'];
         $merchantCustomerId             = null;
 
-        $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D', Mage::app()->getStore()->getStoreId());
-        $profilesEnabled = Mage::getStoreConfig('payment/optimal_profiles/active', Mage::app()->getStore()->getStoreId());
+        $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D', $storeId);
+        $profilesEnabled = Mage::getStoreConfig('payment/optimal_profiles/active', $storeId);
 
         if (!$customerData['is_guest']) {
 
@@ -197,7 +204,7 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
 
         // Need to be sure this matches the store on which the order was placed
         if (is_null($transactionMode)) {
-            $transactionMode = Mage::getStoreConfig('payment/optimal_hosted/payment_action');
+            $transactionMode = Mage::getStoreConfig('payment/optimal_hosted/payment_action', $storeId);
         }
 
         switch($transactionMode){
@@ -217,8 +224,6 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
                 Mage::throwException($this->__("There is no transaction method set, please contact the website administrator."));
                 break;
         }
-
-        $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D', Mage::app()->getStore()->getStoreId());
 
         if($skip3d)
         {
@@ -246,7 +251,7 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         $addendumDataArray = array();
         $threatMetrixId = Mage::getSingleton('core/session')->getThreatMetrixSessionKey();
 
-        if(isset($threatMetrixId) && Mage::getStoreConfig('payment/threat_metrix/active'))
+        if(isset($threatMetrixId) && Mage::getStoreConfig('payment/threat_metrix/active', $storeId))
         {
             $extendedOptionsArray[] = array(
                 'key'       => (string) 'threatMetrixSessionId',
@@ -411,7 +416,6 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         $data['extendedOptions']    = $extendedOptionsArray;
         $data['addendumData']       = $addendumDataArray;
 
-        Mage::log($data, null, 'NetBanxData.log');
         return $data;
     }
 

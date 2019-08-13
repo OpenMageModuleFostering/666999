@@ -205,7 +205,6 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
         $defaultMessage = 'Payment Gateway Error. Please contact the site admin.';
 
         if (isset($response->error) && !isset($response->error->code)) {
-            Mage::log('Corrupt Response from Gateway:', null, 'demac_optimal.log');
             Mage::log($response, null, 'demac_optimal.log');
             $helper->cleanMerchantCustomerId($session->getId());
             throw new Demac_Optimal_Model_Hosted_Exception($defaultMessage);
@@ -229,7 +228,6 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
             $message = $helper->getMsgByCode($response->transaction->errorCode);
 
             if ($message === null && !isset($response->transaction->errorCode)) {
-                Mage::log('Corrupt Response from Gateway (transaction):', null, 'demac_optimal.log');
                 Mage::log($response, null, 'demac_optimal.log');
                 throw new Demac_Optimal_Model_Hosted_Exception($defaultMessage);
             }

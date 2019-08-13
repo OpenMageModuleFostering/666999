@@ -27,43 +27,263 @@
 <?php
 $_code = $this->getMethodCode();
 
-$skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D');
-$profilesEnabled = ($this->hasOptimalProfiles() === true);
-
+$skip3d = $this->skip3D();
+$profilesEnabled = $this->canSaveProfiles();
+//$profilesEnabled = ($this->hasOptimalProfiles() === true);
+$allowInterac = $this->allowInterac();
+$profiles = $this->hasOptimalProfiles();
 ?>
 
+<?php if (!$skip3d): ?>
+    <ul class="form-list" id="payment_form_<?php echo $_code ?>" style="display:none;">
+        <li>You will be redirected to Optimal Payments for payment authorisation. <?php echo $allowInterac ? 'Please choose mode of payment below.' : ''; ?></li>
+    <?php if ($allowInterac): ?>
+        <li class="control">
+            <input id="optimal-pay-via-interac" type="radio" title="<?php echo $this->__('Pay via Interac') ?>" class="radio optimal-pay-via validate-one-required-by-name" value="1" name="payment[optimal_use_interac]">
+            <label for="optimal-pay-via-interac"><?php echo $this->__('Pay via Interac') ?> </label>
+        </li>
+        <li class="control">
+            <input id="optimal-pay-via-cc" type="radio" title="<?php echo $this->__('Pay using Credit Card') ?>" class="radio optimal-pay-via validate-one-required-by-name" value="0" name="payment[optimal_use_interac]">
+            <label for="optimal-pay-via-cc"><?php echo $this->__('Pay using Credit Card') ?> </label>
+        </li>
+    <?php endif; ?>
+    </ul>
 
-<?php if($profilesEnabled && $skip3d): ?>
-    <div id="select_card_form" >
-        <ul class="profile_list form-list" id="payment_form_<?php echo $_code ?>" >
-            <li class="wide">
-                <label for="<?php echo $_code ?>_profile_id"><?php echo $this->__('Select a Credit Card Profile.') ?></label>
-                <div class="input-box">
-                    <select class="<?php echo $_code ?>_profile_id" id="<?php echo $_code ?>_profile_id" name="payment[profile_id]">
-                        <?php foreach($this->profiles as $profile): ?>
-                            <option selected="" value="<?php echo $profile->getEntityId(); ?>"><?php echo ucwords($profile->getCardNickname()); ?> / **** **** **** <?php echo $profile->getLastFourDigits(); ?></option>
-                        <?php endforeach; ?>
-                        <option value="0"><?php echo $this->__('New Profile') ?></option>
-                    </select>
-                </div>
-            </li>
-            <li>
-                <label class="<?php echo $_code ?>_cc_cid" for="<?php echo $_code ?>_cc_cid" class="required"><em>*</em><?php echo $this->__('Card Verification Number') ?></label>
-                <div class="input-box">
-                    <div class="v-fix">
-                        <input type="text" title="<?php echo $this->__('Card Verification Number') ?>" class="input-text cvv required-entry" id="<?php echo $_code ?>_cc_cid" name="payment[cc_cid]" value="" />
+    <script type="text/javascript">
+        $$('input[name=payment[method]]').invoke('on', 'click', function() {
+            if (this.value == '<?php echo $_code; ?>') {
+                $('payment_form_<?php echo $_code ?>').show();
+            } else {
+                $('payment_form_<?php echo $_code ?>').hide();
+            }
+        });
+    </script>
+
+<?php return; endif; ?>
+
+<div id="optimal-cc-forms">
+
+<?php if ($allowInterac): ?>
+
+    <ul class="form-list" id="optimal-form-controls" style="display:none;">
+        <li class="control">
+            <input id="optimal-pay-via-interac" type="checkbox" title="<?php echo $this->__('Use Interac') ?>" class="radio optimal-pay-via" value="interac" name="optimal-pay-via">
+            <label for="optimal-pay-via-interac"><?php echo $this->__('Use Interac') ?> </label>
+            <input type="hidden" value="0" name="payment[optimal_use_interac]" id="opt-use-interac" />
+        </li>
+        <li id="interac-msg" style="display:none;">
+            <ul class="form-list">
+                <li><?php echo $this->__('This will redirect you to Optimal Hosted Payments page where you can complete your payment via Interac.'); ?></li>
+            </ul>
+        </li>
+        <li class="control">
+            <input id="optimal-pay-via-cc" type="checkbox" title="<?php echo $this->__('Pay Via Credit Card') ?>" class="radio optimal-pay-via" value="creditcard" name="optimal-pay-via">
+            <label for="optimal-pay-via-cc"><?php echo $this->__('Pay Via Credit Card') ?> </label>
+        </li>
+    </ul>
+
+    <script type="text/javascript">
+        $('p_method_<?php echo $_code; ?>').on('click', function() {
+            $('optimal-form-controls').show();
+            $$('input[name=optimal-pay-via]').each(function(element){
+                element.disabled = false;
+            });
+            $('opt-use-interac').disabled = false;
+        });
+
+        $$('input[name=optimal-pay-via]').invoke('on', 'click', function() {
+            if (this.value == 'interac') {
+                if (this.checked == true) {
+                    $('interac-msg').show();
+                    $('optimal-pay-via-cc').checked = false;
+                    $('opt-use-interac').value = 1;
+
+                    <?php if ($profilesEnabled): ?>
+
+                    hideProfilesSelector();
+
+                    <?php endif; ?>
+
+                    hideFormCombo();
+
+                } else {
+                    $('interac-msg').hide();
+                    $('opt-use-interac').value = 0;
+                }
+            } else if (this.value == 'creditcard') {
+                if (this.checked == true) {
+                    $('interac-msg').hide();
+                    $('opt-use-interac').value = 0;
+                    $('optimal-pay-via-interac').checked = false;
+
+                    <?php if ($profilesEnabled): ?>
+                        showProfilesSelector();
+                    <?php endif; ?>
+
+                    showFormCombo();
+                    return;
+
+                }
+
+                <?php if ($profilesEnabled): ?>
+                    hideProfilesSelector();
+                <?php endif; ?>
+
+                hideFormCombo();
+            }
+        });
+
+        function showProfilesSelector() {
+            $('optimal-save-profiles').show();
+            $$('#optimal-save-profiles select, #optimal-save-profiles input').each(function(element) {
+                element.disabled = false;
+            });
+        }
+
+        function showFormCombo() {
+            $('optimal-form-combinations').show();
+            $$('#optimal-form-combinations input, #optimal-form-combinations select').each(function(element) {
+                element.disabled = false;
+            });
+        }
+
+        function hideProfilesSelector() {
+            $('optimal-save-profiles').hide();
+            $$('#optimal-save-profiles select, #optimal-save-profiles input').each(function(element) {
+                element.disabled = true;
+            });
+        }
+
+        function hideFormCombo() {
+            $('optimal-form-combinations').hide();
+            $$('#optimal-form-combinations input, #optimal-form-combinations select').each(function(element) {
+                element.disabled = true;
+            });
+        }
+    </script>
+
+<?php else: ?>
+
+    <script type="text/javascript">
+        $$('input[name=payment[method]]').invoke('on', 'click', function() {
+
+            if (this.value == '<?php echo $_code; ?>') {
+
+                $('optimal-form-combinations').show();
+
+                <?php if ($profilesEnabled): ?>
+
+                $('optimal-save-profiles').show();
+                $$('#optimal-save-profiles input, #optimal-save-profiles select').each(function(element) {
+                    element.disabled = false;
+                });
+
+                <?php else: ?>
+
+                $('<?php echo $_code; ?>_cc-payment-form').show();
+                $$('#<?php echo $_code; ?>_cc-payment-form input, #<?php echo $_code; ?>_cc-payment-form select').each(function(element) {
+                    element.disabled = false;
+                });
+
+                <?php endif; ?>
+
+            } else {
+
+                $('optimal-form-combinations').hide();
+
+                <?php if (!$profilesEnabled): ?>
+
+                $$('#<?php echo $_code; ?>_cc-payment-form input, #<?php echo $_code; ?>_cc-payment-form select').each(function(element) {
+                    element.disabled = true;
+                });
+
+                <?php endif; ?>
+            }
+        });
+    </script>
+
+
+<?php endif; ?>
+
+<div id="optimal-form-combinations" style="display:none;">
+
+    <?php if ($profilesEnabled): ?>
+
+        <div id="select-card-form">
+            <ul class="profile_list form-list" id="optimal-save-profiles" style="display:none;">
+                <li class="wide">
+                    <label for="<?php echo $_code ?>_profile_id"><?php echo $this->__('Select a Credit Card Profile.') ?></label>
+                    <div class="input-box">
+                        <select class="<?php echo $_code ?>_profile_id" id="<?php echo $_code ?>_profile_id" name="payment[profile_id]">
+
+                            <option value="select"><?php echo $this->__('Select Profile') ?></option>
+
+                            <?php foreach($this->profiles as $profile): ?>
+                                <option selected="" value="<?php echo $profile->getEntityId(); ?>"><?php echo ucwords($profile->getCardNickname()); ?> / **** **** **** <?php echo $profile->getLastFourDigits(); ?></option>
+                            <?php endforeach; ?>
+
+                            <option value="new"><?php echo $this->__('New Profile') ?></option>
+                        </select>
                     </div>
+                </li>
+                <li id="optimal-cc-verification">
+                    <label class="<?php echo $_code ?>_cc_cid" for="<?php echo $_code ?>_cc_cid" class="required"><em>*</em><?php echo $this->__('Card Verification Number') ?></label>
+                    <div class="input-box">
+                        <div class="v-fix">
+                            <input type="text" title="<?php echo $this->__('Card Verification Number') ?>" class="input-text cvv required-entry" id="<?php echo $_code ?>_cc_cid" name="payment[cc_cid]" value="" />
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <script type="text/javascript">
+            function showOptimalCcForm() {
+                $('<?php echo $_code; ?>_cc-payment-form').show();
+                $$('#<?php echo $_code; ?>_cc-payment-form input, #<?php echo $_code; ?>_cc-payment-form select').each(function(element) {
+                    element.disabled = false;
+                });
+            }
+            function hideOptimalCcForm() {
+                $('<?php echo $_code; ?>_cc-payment-form').hide();
+                $$('#<?php echo $_code; ?>_cc-payment-form input, #<?php echo $_code; ?>_cc-payment-form select').each(function(element) {
+                    element.disabled = true;
+                });
+            }
+
+            $('<?php echo $_code ?>_profile_id').on('change', function() {
+                if (this.value == 'new') {
+                    $('optimal-cc-verification').hide();
+                    $$('#optimal-cc-verification input, #optimal-cc-verification select').each(function (element) {
+                        element.disabled = true;
+                    });
+                    showOptimalCcForm();
+                }else if (this.value == 'select') {
+                    //
+                } else {
+                    hideOptimalCcForm();
+                    $('optimal-cc-verification').show();
+                    $$('#optimal-cc-verification input, #optimal-cc-verification select').each(function(element) {
+                        element.disabled = false;
+                    });
+                }
+            });
+        </script>
+
+    <?php endif; ?>
+
+    <div id="<?php echo $_code; ?>_cc-payment-form" style="<?php echo $profilesEnabled ? 'display:none;' : ''; ?>">
+        <ul class="form-list">
+            <li>
+                <label for="<?php echo $_code ?>_cc_owner" class="required"><em>*</em><?php echo $this->__('Name on Card') ?></label>
+                <div class="input-box">
+                    <input type="text" title="<?php echo $this->__('Name on Card') ?>" class="input-text required-entry" id="<?php echo $_code ?>_cc_owner" name="payment[cc_owner]" value="<?php echo $this->escapeHtml($this->getInfoData('cc_owner')) ?>" />
                 </div>
             </li>
-        </ul>
-    </div>
-
-    <div id="create_card_form" style="display:none;">
-        <ul class="form-list" id="payment_form_<?php echo $_code ?>">
             <li>
                 <label for="<?php echo $_code ?>_cc_type" class="required"><em>*</em><?php echo $this->__('Credit Card Type') ?></label>
                 <div class="input-box">
-                    <select id="<?php echo $_code ?>_cc_type" name="payment[cc_type]" title="<?php echo $this->__('Credit Card Type') ?>" class="cc_type required-entry validate-cc-type-select">
+                    <select id="<?php echo $_code ?>_cc_type" name="payment[cc_type]" title="<?php echo $this->__('Credit Card Type') ?>" class="required-entry validate-cc-type-select">
                         <option value=""><?php echo $this->__('--Please Select--') ?></option>
                         <?php $_ccType = $this->getInfoData('cc_type') ?>
                         <?php foreach ($this->getCcAvailableTypes() as $_typeCode => $_typeName): ?>
@@ -110,202 +330,69 @@ $profilesEnabled = ($this->hasOptimalProfiles() === true);
                     </div>
                 </li>
             <?php endif; ?>
-            <li class="control">
-                <input type="checkbox" title="<?php echo $this->__('Create Profile and Save Card') ?>" class="radio" value="1" id="<?php echo $_code ?>_create_profile" name="payment[optimal_create_profile]">
-                <label for="<?php echo $_code ?>_optimal_create_profile"><?php echo $this->__('Create Profile and Save Card') ?> </label>
-            </li>
+            <?php if($this->canSaveProfiles()): ?>
+                <li class="control">
+                    <input type="checkbox" title="<?php echo $this->__('Create Profile and Save Card') ?>" class="radio" value="1" id="<?php echo $_code ?>_optimal_create_profile" name="payment[optimal_create_profile]">
+                    <label for="<?php echo $_code ?>_optimal_create_profile" class="required"><em>*</em><?php echo $this->__('Create Profile and Save Card') ?> </label>
+                </li>
+            <?php else: ?>
+                <input type="hidden" title="<?php echo $this->__('Create Profile and Save Card') ?>" class="radio" value="0" id="<?php echo $_code ?>_create_profile" name="payment[optimal_create_profile]">
+            <?php endif; ?>
+            <?php if ($this->hasSsCardType()): ?>
+                <li id="<?php echo $_code ?>_cc_type_ss_div">
+                    <ul class="inner-form">
+                        <li class="form-alt"><label for="<?php echo $_code ?>_cc_issue" class="required"><em>*</em><?php echo $this->__('Switch/Solo/Maestro Only') ?></label></li>
+                        <li>
+                            <label for="<?php echo $_code ?>_cc_issue"><?php echo $this->__('Issue Number') ?>:</label>
+                    <span class="input-box">
+                        <input type="text" title="<?php echo $this->__('Issue Number') ?>" class="input-text validate-cc-ukss cvv" id="<?php echo $_code ?>_cc_issue" name="payment[cc_ss_issue]" value="" />
+                    </span>
+                        </li>
+
+                        <li>
+                            <label for="<?php echo $_code ?>_start_month"><?php echo $this->__('Start Date') ?>:</label>
+                            <div class="input-box">
+                                <div class="v-fix">
+                                    <select id="<?php echo $_code ?>_start_month" name="payment[cc_ss_start_month]" class="validate-cc-ukss month">
+                                        <?php foreach ($this->getCcMonths() as $k=>$v): ?>
+                                            <option value="<?php echo $k?$k:'' ?>"<?php if($k==$this->getInfoData('cc_ss_start_month')): ?> selected="selected"<?php endif ?>><?php echo $v ?></option>
+                                        <?php endforeach ?>
+                                    </select>
+                                </div>
+                                <div class="v-fix">
+                                    <select id="<?php echo $_code ?>_start_year" name="payment[cc_ss_start_year]" class="validate-cc-ukss year">
+                                        <?php foreach ($this->getSsStartYears() as $k=>$v): ?>
+                                            <option value="<?php echo $k?$k:'' ?>"<?php if($k==$this->getInfoData('cc_ss_start_year')): ?> selected="selected"<?php endif ?>><?php echo $v ?></option>
+                                        <?php endforeach ?>
+                                    </select>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="adv-container">&nbsp;</li>
+                    </ul>
+                    <script type="text/javascript">
+                        //<![CDATA[
+                        var SSChecked<?php echo $_code ?> = function() {
+                            var elm = $('<?php echo $_code ?>_cc_type');
+                            if (['SS','SM','SO'].indexOf(elm.value) != -1) {
+                                $('<?php echo $_code ?>_cc_type_ss_div').show();
+                            } else {
+                                $('<?php echo $_code ?>_cc_type_ss_div').hide();
+                            }
+                        };
+
+                        Event.observe($('<?php echo $_code ?>_cc_type'), 'change', SSChecked<?php echo $_code ?>);
+                        SSChecked<?php echo $_code ?>();
+                        //]]>
+                    </script>
+                </li>
+            <?php endif; ?>
         </ul>
     </div>
-    <script type="text/javascript">
-        //<![CDATA[
-        // initially hide all containers for tab
+</div>
 
-        Event.observe($('p_method_optimal_hosted'),'change', function(){
-            $('optimal_hosted_profile_id').enable();
-            $$('.profile_list')[0].select('#optimal_hosted_cc_cid')[0].enable();
+</div>
 
-            $('create_card_form').select('input').each(function(el){
-                $(el).disable();
-            });
+<script type="text/javascript">
 
-            $('create_card_form').select('select').each(function(el){
-                $(el).disable();
-            });
-            $$('.cc_type')[0].writeAttribute("id", "<?php echo $_code ?>_cc_type_disabled");
-
-        });
-
-        Event.observe(window, "load", function() {
-            var f = $('optimal_hosted_profile_id').value;
-            setOptimalPaymentsCreditCardForm(f);
-        });
-
-
-        Event.observe($('optimal_hosted_profile_id'),'change', function() {
-            var f = $('optimal_hosted_profile_id').value;
-            setOptimalPaymentsCreditCardForm(f);
-        });
-
-        function setOptimalPaymentsCreditCardForm(f) {
-            //var f = $('optimal_hosted_profile_id').value;
-            if(f == '0') {
-                $('create_card_form').show();
-                $$('.profile_list')[0].select('#optimal_hosted_cc_cid')[0].hide();
-                $$('.profile_list')[0].select('#optimal_hosted_cc_cid')[0].disable();
-
-                $$('.cc_type')[0].writeAttribute("id", "<?php echo $_code ?>_cc_type");
-
-                $('create_card_form').select('input').each(function(el){
-                    $(el).enable();
-                });
-                $$('.<?php echo $_code ?>_cc_cid')[0].hide();
-
-                $('create_card_form').select('select').each(function(el){
-                    $(el).enable();
-                });
-
-            } else {
-                $('create_card_form').hide();
-                $$('.profile_list')[0].select('#optimal_hosted_cc_cid')[0].enable();
-                $$('.profile_list')[0].select('#optimal_hosted_cc_cid')[0].show();
-
-                $$('.cc_type')[0].writeAttribute("id", "<?php echo $_code ?>_cc_type_disabled");
-
-                $('create_card_form').select('input').each(function(el){
-                    $(el).disable();
-                });
-                $$('.<?php echo $_code ?>_cc_cid')[0].show();
-
-                $('create_card_form').select('select').each(function(el){
-                    $(el).disable();
-                });
-            }
-        }
-
-        //]]>
-
-
-    </script>
-
-<?php elseif (!$skip3d): ?>
-    <ul class="form-list" id="payment_form_<?php echo $_code ?>" style="display:none;">
-        <li>You will be redirected to Optimal Payments for payment authorisation.</li>
-    </ul>
-<?php else: ?>
-
-    <ul class="form-list" id="payment_form_<?php echo $_code ?>" style="display:none;">
-        <li>
-            <label for="<?php echo $_code ?>_cc_owner" class="required"><em>*</em><?php echo $this->__('Name on Card') ?></label>
-            <div class="input-box">
-                <input type="text" title="<?php echo $this->__('Name on Card') ?>" class="input-text required-entry" id="<?php echo $_code ?>_cc_owner" name="payment[cc_owner]" value="<?php echo $this->escapeHtml($this->getInfoData('cc_owner')) ?>" />
-            </div>
-        </li>
-        <li>
-            <label for="<?php echo $_code ?>_cc_type" class="required"><em>*</em><?php echo $this->__('Credit Card Type') ?></label>
-            <div class="input-box">
-                <select id="<?php echo $_code ?>_cc_type" name="payment[cc_type]" title="<?php echo $this->__('Credit Card Type') ?>" class="required-entry validate-cc-type-select">
-                    <option value=""><?php echo $this->__('--Please Select--') ?></option>
-                    <?php $_ccType = $this->getInfoData('cc_type') ?>
-                    <?php foreach ($this->getCcAvailableTypes() as $_typeCode => $_typeName): ?>
-                        <option value="<?php echo $_typeCode ?>"<?php if($_typeCode==$_ccType): ?> selected="selected"<?php endif ?>><?php echo $_typeName ?></option>
-                    <?php endforeach ?>
-                </select>
-            </div>
-        </li>
-        <li>
-            <label for="<?php echo $_code ?>_cc_number" class="required"><em>*</em><?php echo $this->__('Credit Card Number') ?></label>
-            <div class="input-box">
-                <input type="text" id="<?php echo $_code ?>_cc_number" name="payment[cc_number]" title="<?php echo $this->__('Credit Card Number') ?>" class="input-text validate-cc-number validate-cc-type" value="" />
-            </div>
-        </li>
-        <li>
-            <label for="<?php echo $_code ?>_expiration" class="required"><em>*</em><?php echo $this->__('Expiration Date') ?></label>
-            <div class="input-box">
-                <div class="v-fix">
-                    <select id="<?php echo $_code ?>_expiration" name="payment[cc_exp_month]" class="month validate-cc-exp required-entry">
-                        <?php $_ccExpMonth = $this->getInfoData('cc_exp_month') ?>
-                        <?php foreach ($this->getCcMonths() as $k=>$v): ?>
-                            <option value="<?php echo $k?$k:'' ?>"<?php if($k==$_ccExpMonth): ?> selected="selected"<?php endif ?>><?php echo $v ?></option>
-                        <?php endforeach ?>
-                    </select>
-                </div>
-                <div class="v-fix">
-                    <?php $_ccExpYear = $this->getInfoData('cc_exp_year') ?>
-                    <select id="<?php echo $_code ?>_expiration_yr" name="payment[cc_exp_year]" class="year required-entry">
-                        <?php foreach ($this->getCcYears() as $k=>$v): ?>
-                            <option value="<?php echo $k?$k:'' ?>"<?php if($k==$_ccExpYear): ?> selected="selected"<?php endif ?>><?php echo $v ?></option>
-                        <?php endforeach ?>
-                    </select>
-                </div>
-            </div>
-        </li>
-        <?php echo $this->getChildHtml() ?>
-        <?php if($this->hasVerification()): ?>
-            <li>
-                <label for="<?php echo $_code ?>_cc_cid" class="required"><em>*</em><?php echo $this->__('Card Verification Number') ?></label>
-                <div class="input-box">
-                    <div class="v-fix">
-                        <input type="text" title="<?php echo $this->__('Card Verification Number') ?>" class="input-text cvv required-entry validate-cc-cvn" id="<?php echo $_code ?>_cc_cid" name="payment[cc_cid]" value="" />
-                    </div>
-                </div>
-            </li>
-        <?php endif; ?>
-        <?php if($this->canSaveProfiles()): ?>
-            <li class="control">
-                <input type="checkbox" title="<?php echo $this->__('Create Profile and Save Card') ?>" class="radio" value="1" id="<?php echo $_code ?>_create_profile" name="payment[optimal_create_profile]">
-                <label for="<?php echo $_code ?>_optimal_create_profile" class="required"><em>*</em><?php echo $this->__('Create Profile and Save Card') ?> </label>
-            </li>
-        <?php else: ?>
-            <input type="hidden" title="<?php echo $this->__('Create Profile and Save Card') ?>" class="radio" value="0" id="<?php echo $_code ?>_create_profile" name="payment[optimal_create_profile]">
-        <?php endif; ?>
-        <?php if ($this->hasSsCardType()): ?>
-            <li id="<?php echo $_code ?>_cc_type_ss_div">
-                <ul class="inner-form">
-                    <li class="form-alt"><label for="<?php echo $_code ?>_cc_issue" class="required"><em>*</em><?php echo $this->__('Switch/Solo/Maestro Only') ?></label></li>
-                    <li>
-                        <label for="<?php echo $_code ?>_cc_issue"><?php echo $this->__('Issue Number') ?>:</label>
-                <span class="input-box">
-                    <input type="text" title="<?php echo $this->__('Issue Number') ?>" class="input-text validate-cc-ukss cvv" id="<?php echo $_code ?>_cc_issue" name="payment[cc_ss_issue]" value="" />
-                </span>
-                    </li>
-
-                    <li>
-                        <label for="<?php echo $_code ?>_start_month"><?php echo $this->__('Start Date') ?>:</label>
-                        <div class="input-box">
-                            <div class="v-fix">
-                                <select id="<?php echo $_code ?>_start_month" name="payment[cc_ss_start_month]" class="validate-cc-ukss month">
-                                    <?php foreach ($this->getCcMonths() as $k=>$v): ?>
-                                        <option value="<?php echo $k?$k:'' ?>"<?php if($k==$this->getInfoData('cc_ss_start_month')): ?> selected="selected"<?php endif ?>><?php echo $v ?></option>
-                                    <?php endforeach ?>
-                                </select>
-                            </div>
-                            <div class="v-fix">
-                                <select id="<?php echo $_code ?>_start_year" name="payment[cc_ss_start_year]" class="validate-cc-ukss year">
-                                    <?php foreach ($this->getSsStartYears() as $k=>$v): ?>
-                                        <option value="<?php echo $k?$k:'' ?>"<?php if($k==$this->getInfoData('cc_ss_start_year')): ?> selected="selected"<?php endif ?>><?php echo $v ?></option>
-                                    <?php endforeach ?>
-                                </select>
-                            </div>
-                        </div>
-                    </li>
-                    <li class="adv-container">&nbsp;</li>
-                </ul>
-                <script type="text/javascript">
-                    //<![CDATA[
-                    var SSChecked<?php echo $_code ?> = function() {
-                        var elm = $('<?php echo $_code ?>_cc_type');
-                        if (['SS','SM','SO'].indexOf(elm.value) != -1) {
-                            $('<?php echo $_code ?>_cc_type_ss_div').show();
-                        } else {
-                            $('<?php echo $_code ?>_cc_type_ss_div').hide();
-                        }
-                    };
-
-                    Event.observe($('<?php echo $_code ?>_cc_type'), 'change', SSChecked<?php echo $_code ?>);
-                    SSChecked<?php echo $_code ?>();
-                    //]]>
-                </script>
-            </li>
-        <?php endif; ?>
-    </ul>
-<?php endif;?>
+</script>

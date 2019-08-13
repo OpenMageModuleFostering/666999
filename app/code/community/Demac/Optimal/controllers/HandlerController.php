@@ -111,9 +111,12 @@ class Demac_Optimal_HandlerController extends Mage_Core_Controller_Front_Action
         $transaction        = $orderStatus->transaction;
 
         $customerSession = Mage::getSingleton('customer/session');
-        list($month, $year) = explode('/', $transaction->card->expiry);
 
-        if ($customerSession->isLoggedIn()) {
+        if (isset($transaction->card->expiry)) {
+            list($month, $year) = explode('/', $transaction->card->expiry);
+        }
+
+        if ($customerSession->isLoggedIn() && $transaction->paymentType != 'interac') {
             $customerId = $customerSession->getId();
             $customerData = Mage::getModel('customer/customer')->load($customerId)->getData();
             $Card = Mage::getModel('optimal/creditcard');
@@ -138,7 +141,7 @@ class Demac_Optimal_HandlerController extends Mage_Core_Controller_Front_Action
             // Set Profile Info
             $profile->setCustomerId($customerId);
             $profile->setProfileId($orderStatus->profile->id);
-            $lnt = strlen($orderStatus->profile->id);
+
             $profile->setMerchantCustomerId($merchantCustomerId);
             $profile->setPaymentToken($orderStatus->profile->paymentToken);
 
@@ -175,11 +178,15 @@ class Demac_Optimal_HandlerController extends Mage_Core_Controller_Front_Action
         $payment->setTransactionId($optimalOrderId);
         // magento will automatically close the transaction on auth preventing the invoice from being captured online.
         $payment->setIsTransactionClosed(false);
-        $payment->setCcOwner($cardHolder)
-            ->setCcType(Mage::helper('optimal')->processCardNickname($transaction->card->brand))
-            ->setCcExpMonth($month)
-            ->setCcExpYear($year)
-            ->setCcLast4($transaction->card->lastDigits);
+
+        if ($transaction->paymentType != 'interac') {
+            $payment->setCcOwner($cardHolder)
+                ->setCcType(Mage::helper('optimal')->processCardNickname($transaction->card->brand))
+                ->setCcExpMonth($month)
+                ->setCcExpYear($year)
+                ->setCcLast4($transaction->card->lastDigits);
+        }
+
         $payment->save();
 
         $this->_redirect('checkout/onepage/success');
