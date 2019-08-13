@@ -201,24 +201,58 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
     {
 
         $response = json_decode($this->_callApi($url,$method,$data));
+        $defaultError = 'Something went wrong with your transaction. Please contact support.';
 
-        if(isset($response->error))
-        {
+        if (isset($response->error)) {
             Mage::helper('optimal')->cleanMerchantCustomerId(Mage::getSingleton('customer/session')->getId());
-            Mage::throwException($response->error->message);
-            return false;
+            $message = $this->_getMsgByCode($response->error->code);
+            if ($message === null) {
+                if (isset($response->error->message)) {
+                    $message = $response->error->message;
+                } else {
+                    $message = $defaultError;
+                }
+            }
+
+            throw new Demac_Optimal_Model_Hosted_Exception($message);
         }
-        if(isset($response->transaction->errorCode))
-        {
+
+        if (isset($response->transaction->errorCode)) {
+            $message = $this->_getMsgByCode($response->transaction->errorCode);
+            if ($message === null) {
+                if (isset($response->transaction->errorMessage)) {
+                    $message = $response->transaction->errorMessage;
+                } else {
+                    $message = $defaultError;
+                }
+            }
+
             $session = Mage::getSingleton('customer/session');
             if (!$session->getCustomerId()) {
-                Mage::getSingleton('customer/session')->addError($response->transaction->errorMessage);
+                Mage::getSingleton('customer/session')->addError($message);
             }
             Mage::helper('optimal')->cleanMerchantCustomerId(Mage::getSingleton('customer/session')->getId());
-            Mage::throwException($response->transaction->errorMessage);
-            return false;
+
+            throw new Demac_Optimal_Model_Hosted_Exception($message);
         }
+
         return $response;
+    }
+
+    /**
+     * Returns 'Default' Error message if message by Code is not found
+     *
+     * @param null $code
+     * @return null|string
+     */
+    protected function _getMsgByCode($code = null)
+    {
+        $message = Mage::helper('optimal')->getMsgByCode($code);
+        if ($message !== null) {
+            return $message;
+        }
+
+        return null;
     }
 
     /**
@@ -279,8 +313,7 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
             Mage::logException($e);
             return false;
         }
-        Mage::log('OPTIMAL RESPONSE (_callApi):');
-        Mage::log($curl_response);
+
         return $curl_response;
     }
 
@@ -314,8 +347,6 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
             curl_setopt($curl,CURLOPT_POSTFIELDS, $data_string);
             $curl_response = curl_exec($curl);
 
-            Mage::log('OPTIMAL RESPONSE (submitPayment):');
-            Mage::log($curl_response);
             curl_close($curl);
             return true;
 

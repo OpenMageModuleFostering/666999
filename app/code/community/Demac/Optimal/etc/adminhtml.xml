@@ -11,6 +11,11 @@
                             <sort_order>1</sort_order>
                             <action>adminhtml/threat/index</action>
                         </mapping>
+                        <error_codes translate="title" module="optimal">
+                            <title>Manage Error Codes</title>
+                            <sort_order>2</sort_order>
+                            <action>adminhtml/errorcodes/index</action>
+                        </error_codes>
                     </children>
                 </optimal>
             </children>
