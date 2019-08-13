@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS `{$this->getTable('optimal/creditcard')}` (
   `card_nickname` varchar(255) NOT NULL DEFAULT '',
   `card_expiration` varchar(255) NOT NULL DEFAULT '',
   `payment_token` varchar(255) NOT NULL DEFAULT '',
-  `last_four_digits` int(4) NOT NULL DEFAULT 0,
-  `profile_id` int(20) NOT NULL DEFAULT 0,
+  `last_four_digits` varchar(4) NOT NULL DEFAULT '',
+  `profile_id` varchar(255) NOT NULL DEFAULT '',
   `is_deleted` boolean NOT NULL DEFAULT false,
   `created_at` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
   PRIMARY KEY (`entity_id`),
@@ -67,10 +67,10 @@ $installer->getConnection()->addColumn($installer->getTable('sales_flat_order_pa
     'optimal_create_profile', 'BOOLEAN NOT NULL AFTER `method`');
 
 $installer->getConnection()->addColumn($installer->getTable('sales_flat_quote_payment'),
-    'optimal_profile_id', 'INT(10) NOT NULL DEFAULT 0 AFTER `method`');
+    'optimal_profile_id', 'VARCHAR(255) NOT NULL DEFAULT "" AFTER `method`');
 
 $installer->getConnection()->addColumn($installer->getTable('sales_flat_order_payment'),
-    'optimal_profile_id', 'INT(10) NOT NULL DEFAULT 0 AFTER `method`');
+    'optimal_profile_id', 'VARCHAR(255) NOT NULL DEFAULT "" AFTER `method`');
 
 $table = $installer->getConnection()
     ->newTable($installer->getTable('optimal/merchant_customer'))

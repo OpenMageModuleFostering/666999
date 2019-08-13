@@ -209,6 +209,7 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
             }
 
             $order      = $payment->getOrder();
+            $quote      = Mage::getModel('sales/quote')->load($order->getQuoteId());
             $client     = Mage::getModel('optimal/hosted_client');
             $helper     = Mage::helper('optimal');
 
@@ -225,6 +226,7 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
             $orderData['shipping_address']  = $order->getShippingAddress();
 
             $orderData['base_tax_amount']               = $order->getBaseTaxAmount();
+            $orderData['gift_cards_amount']             = $quote->getBaseGiftCardsAmountUsed();
             $orderData['base_grand_total']              = $order->getBaseGrandTotal();
             $orderData['base_currency_code']            = $order->getBaseCurrencyCode();
             $orderData['base_shipping_amount']          = $order->getBaseShippingAmount();

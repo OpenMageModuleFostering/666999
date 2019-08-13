@@ -11,14 +11,11 @@ class Demac_Optimal_HandlerController extends Mage_Core_Controller_Front_Action
     {
         $params             = $this->getRequest()->getParams();
         $session            = Mage::getSingleton('checkout/session');
-
         $status             = $params['transaction_status'];
-        $confirmation       = $params['transaction_confirmationNumber'];
-        $optimalOrderId     = $params['id'];
 
         if ($status != 'success') {
             $session->addError($this->__('Payment failed, please review your payment information and try again.'));
-            $this->_handlePaymentFailure();
+            $this->_handlePaymentFailure($session, $params);
             $this->_redirect('checkout/cart');
             return;
         }
@@ -27,7 +24,7 @@ class Demac_Optimal_HandlerController extends Mage_Core_Controller_Front_Action
             $this->_handlePaymentSuccess($session, $params);
         } catch (Mage_Core_Exception $e) {
             Mage::logException($e);
-            $this->_handlePaymentFailure();
+            $this->_handlePaymentFailure($session, $params);
             $this->_redirect('checkout/onepage/failure');
         }
 
@@ -39,13 +36,49 @@ class Demac_Optimal_HandlerController extends Mage_Core_Controller_Front_Action
      * Cancel Order and attempt to restore cart.
      *
      */
-    protected function _handlePaymentFailure()
+    protected function _handlePaymentFailure($session, $params)
     {
-        $session = Mage::getSingleton('checkout/session');
+        $status             = $params['transaction_status'];
+        $confirmation       = $params['transaction_confirmationNumber'];
+        $optimalOrderId     = $params['id'];
+        $profileId          = $params['profile_id'];
+        $paymentToken       = $params['profile_paymentToken'];
+        $profile            = Mage::getModel('optimal/creditcard')->loadByProfileId($profileId);
+
+        $customerId         = Mage::getSingleton('customer/session')->getId();
+        $merchantCustomerId = Mage::helper('optimal')->getMerchantCustomerId($customerId);
+        $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
+
+        // Check if profile exists
+        if (!$profile->getId()) {
+            // Make one otherwise
+            $profile->setCustomerId($customerId);
+            $profile->setProfileId($profileId);
+            $profile->setPaymentToken($paymentToken);
+            $profile->setMerchantCustomerId($merchantCustomerId);
+            $profile->setIsDeleted(1);
+            $profile->save();
+        }
 
         if ($session->getLastRealOrderId()) {
+            $order = Mage::getModel('sales/order')->loadByIncrementId($session->getLastRealOrderId());
+            $payment = $order->getPayment();
+
+            $order->addStatusHistoryComment(
+                'Netbanks Order Id: ' . $optimalOrderId .'<br/>' .
+                'Transaction Id: ' . $confirmation .'<br/>' .
+                'Status: ' . $status .'<br/>'
+            );
+
+            $payment->setStatus('DECLINED');
+            $payment->setAdditionalInformation('order', serialize(array('id' => $optimalOrderId)));
+
+            $payment->setTransactionId($optimalOrderId);
+            // magento will automatically close the transaction on auth preventing the invoice from being captured online.
+            $payment->setIsTransactionClosed(true);
+            $payment->save();
+
             try {
-                $order = Mage::getModel('sales/order')->loadByIncrementId($session->getLastRealOrderId());
                 if ($order->getId()) {
                     $order->cancel()->save();
                 }
@@ -67,8 +100,6 @@ class Demac_Optimal_HandlerController extends Mage_Core_Controller_Front_Action
      */
     protected function _handlePaymentSuccess($session, $params)
     {
-        $status             = $params['transaction_status'];
-        $confirmation       = $params['transaction_confirmationNumber'];
         $optimalOrderId     = $params['id'];
 
         $order = Mage::getModel('sales/order')->loadByIncrementId($session->getLastRealOrderId());
@@ -99,13 +130,15 @@ class Demac_Optimal_HandlerController extends Mage_Core_Controller_Front_Action
             $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
 
             // this means the CC is not saved
-            if (empty($profile)) {
+            $profileDbId = $profile->getId();
+            if (empty($profileDbId)) {
                 $profile = Mage::getModel('optimal/creditcard');
             }
 
             // Set Profile Info
             $profile->setCustomerId($customerId);
             $profile->setProfileId($orderStatus->profile->id);
+            $lnt = strlen($orderStatus->profile->id);
             $profile->setMerchantCustomerId($merchantCustomerId);
             $profile->setPaymentToken($orderStatus->profile->paymentToken);
 

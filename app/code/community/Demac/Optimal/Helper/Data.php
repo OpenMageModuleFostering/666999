@@ -39,7 +39,7 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         if($customer_id !== false) {
             $customer = Mage::getModel('optimal/merchant_customer')->load($customer_id, 'customer_id');
             if($customer->getMerchantCustomerId()) {
-                return $this->processMerchantCustomerId($customer->getMerchantCustomerId());
+                return $this->processMerchantCustomerId($customer);
             }
         }
 
@@ -49,14 +49,22 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         }
         $customer->setDataChanges(true); // force save in case we need to save just the ID.
         $customer->save();
-        return $this->processMerchantCustomerId($customer->getMerchantCustomerId());
+
+        $cData = Mage::getModel('optimal/merchant_customer')->getCollection()
+            ->addFieldToFilter('customer_id', $customer_id)
+            ->getFirstItem();
+
+        return $this->processMerchantCustomerId($customer);
     }
 
-    protected function processMerchantCustomerId($internal_id) {
-        $profileKey = Mage::getStoreConfig('payment/optimal_profiles/profile_key');
+    protected function processMerchantCustomerId($merchantCustomer) {
+        $internalId = $merchantCustomer->getMerchantCustomerId();
+        $customerId = $merchantCustomer->getCustomerId();
+        $currentStoreId = Mage::app()->getStore()->getStoreId();
+        $apiLoginId = Mage::helper('core')->decrypt(Mage::getStoreConfig('payment/optimal_hosted/login'), $currentStoreId);
         return array(
-            'internal_id' => $internal_id,
-            'merchant_customer_id' => md5($profileKey . $internal_id)
+            'internal_id' => $internalId,
+            'merchant_customer_id' => md5($apiLoginId . $internalId . $customerId)
         );
     }
 
@@ -98,7 +106,7 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         $data = array(
             'totalAmount'               => (int) $this->formatAmount($orderData['base_grand_total']),
             'currencyCode'              => (string) $orderData['base_currency_code'],
-            'merchantRefNum'            => (string) $orderData['increment_id'] . '-' . time(),
+            'merchantRefNum'            => (string) $orderData['increment_id'] . time(),
         );
 
         if(strlen(Mage::getStoreConfig('payment/optimal_hosted/merchant_email')) > 0) {
@@ -134,7 +142,9 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
                 $customerId = Mage::getSingleton('customer/session')->getId();
             }
 
-            $profile = Mage::getModel('optimal/creditcard')->load($customerId, 'customer_id');
+            $merchantCustomerId = $this->getMerchantCustomerId($customerId);
+            $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
+            $profile = Mage::getModel('optimal/creditcard')->loadByMerchantCustomerId($merchantCustomerId);
 
             // If not skipping 3D and CreateProfiles is TRUE
             if (!$skip3d && $profilesEnabled) {
@@ -143,7 +153,7 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
 
                     $customerProfile['id'] = (string) $profile->getProfileId();
 
-                } elseif (!isset($merchantCustomerId)) {
+                } elseif (empty($customerProfile['merchantCustomerId'])) {
                     $merchantCustomerId = $this->getMerchantCustomerId($customerId);
                     $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
                     $customerProfile['merchantCustomerId']  = $merchantCustomerId;
@@ -264,6 +274,13 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
             )
         );
 
+        if (!empty($orderData['gift_cards_amount'])) {
+            $ancillaryFeesArray[] = array(
+                'amount'        => (-100 * $orderData['gift_cards_amount']),
+                'description'   => "Gift Cards Amount"
+            );
+        }
+
         // Billing Details information
         $billingDetailsArray = array(
             'city'      => (string) $billingAddress->getCity(),
@@ -329,6 +346,7 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         // Shopping Cart Information
         foreach($orderItems as $item)
         {
+            $itemAmountTotal += (float) $item->getBasePrice();
             $itemArray = array(
                 'amount'        => (int) $this->formatAmount($item->getBasePrice()),
                 'quantity'      => (int) $item->getQtyOrdered(),
@@ -356,7 +374,7 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
 
         // Callback information
         $redirectArray = array();
-        $returnKeys = array('id', 'transaction.confirmationNumber', 'transaction.status');
+        $returnKeys = array('id', 'transaction.confirmationNumber', 'transaction.status', 'profile.id', 'profile.paymentToken');
 
         $redirectArray[] = array(
             'rel'           => (string) 'on_success',

@@ -22,9 +22,10 @@ class Demac_Optimal_Model_Observer
         $isCustomerNotified = false; // Customer Notification true/false.
 
 
-        if ($payment->getMethod() == 'optimal_hosted') {
+        if ($payment->getMethod() == 'optimal_hosted' && isset($orderAdditionalInformation['transaction'])) {
             $orderAdditionalInformation = $payment->getAdditionalInformation();
 
+            // The Transaction Object is not present mostly when there is a declined transaction
             $transaction = unserialize($orderAdditionalInformation['transaction']);
 
             if(!empty($transaction->riskReasonCode))
