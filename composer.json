@@ -1,13 +1,13 @@
 {
     "name": "OpenMageModuleFostering/666999",
     "type": "magento-module",
-    "license": "GPL",
+    "license": "Apache-2.0",
     "homepage": "",
     "description": "Securely access and process online payments with the NETBANX payment gateway.",
     "authors": [
     {
-        "name": "Demac Media",
-        "email": "support@demacmedia.com"
+        "name": "Shane Harper",
+        "email": "sharper@collinsharper.com"
     }
 ],
     "suggest": {

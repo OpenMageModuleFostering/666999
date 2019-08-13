@@ -1,0 +1,11 @@
+<config>
+    <modules>
+        <Op_Netbanx>
+            <active>true</active>
+            <codePool>community</codePool>
+            <depends>
+                <Mage_Payment />
+            </depends>
+        </Op_Netbanx>
+    </modules>
+</config>

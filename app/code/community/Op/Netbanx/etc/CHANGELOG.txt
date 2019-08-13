@@ -1,0 +1,37 @@
+20151014 - Version 0.5.1
+Chris Harper <charper@collinsharper.com>
+
+Changed the module to not be allowed with multiple shipping addresses.
+/app/code/community/Op/Netbanx/Model/Method/Hosted.php
+
+
+20150927 - Version 0.5.0
+Steve Harper <stharper@collinsharper.com>
+
+Removed Optimal Change log from root, CHANGELOG.txt is in following path
+/app/code/community/Op/Netbanx/etc/CHANGELOG.txt
+
+
+20150826 - version 0.5.0 
+Chris Harper <charper@collinsharper.com>    
+
+Update module to not use $this-> for translations, because translations
+require a helper.
+
+
+20150815 - version 0.4.8
+Shane Harper <sharper@collinsharper.com>
+
+correction for  points
+
+
+20150812 - version 0.4.7
+
+update for rounding issue caused by cpu / php 
+corrected issue with install scripts multiple addition of field to
+sales_flat_quote_payment
+
+
+20150806 - version 0.4.6
+
+corrected issue with ancilary fees and points system. - version 0.4.6
