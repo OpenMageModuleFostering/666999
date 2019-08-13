@@ -123,35 +123,65 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
 
         $customerProfile['lastName']    = (string) $customerData['lastname'];
         $customerProfile['firstName']   = (string) $customerData['firstname'];
+        $merchantCustomerId             = null;
+
+        $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D', Mage::app()->getStore()->getStoreId());
+        $profilesEnabled = Mage::getStoreConfig('payment/optimal_profiles/active', Mage::app()->getStore()->getStoreId());
 
         if (!$customerData['is_guest']) {
-            // Check if there is a profile_id being passed
-            if (!empty($customerData['profile_id'])) {
-                $profile = Mage::getModel('optimal/creditcard')->load((int)$customerData['profile_id']);
-                if ($profile->getProfileId()) {
-                    $customerProfile['id'] = (string)$profile->getProfileId();
 
-                    // In case the profile exists
-                    if (!$saveCard) {
-                        $customerProfile['paymentToken'] = (string)$profile->getPaymentToken();
-                    }
-                } else {
-                    Mage::throwException($this->__("The select profile does not exists."));
-                }
-            } elseif($saveCard) {
-
-                // Check for existing profile id
+            if (!isset($customerId)) {
                 $customerId = Mage::getSingleton('customer/session')->getId();
-                $merchantCustomerId = $this->getMerchantCustomerId($customerId);
-                $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
-                $profile = Mage::getModel('optimal/creditcard')->loadByMerchantCustomerId($merchantCustomerId);
+            }
 
-                if($profile->getProfileId()) {
-                    $customerProfile['id'] = (string)$profile->getProfileId();
-                }else {
-                    $customerProfile['merchantCustomerId']    = $merchantCustomerId;
+            $profile = Mage::getModel('optimal/creditcard')->load($customerId, 'customer_id');
+
+            // If not skipping 3D and CreateProfiles is TRUE
+            if (!$skip3d && $profilesEnabled) {
+
+                if ($profile->getProfileId()) {
+
+                    $customerProfile['id'] = (string) $profile->getProfileId();
+
+                } elseif (!isset($merchantCustomerId)) {
+                    $merchantCustomerId = $this->getMerchantCustomerId($customerId);
+                    $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
+                    $customerProfile['merchantCustomerId']  = $merchantCustomerId;
                 }
 
+            } elseif (!$skip3d && !$profilesEnabled) {
+
+                if ($profile->getProfileId()) {
+                    $customerProfile['id']    = $profile->getProfileId();
+                }
+
+            } else {
+                if (!empty($customerData['profile_id'])) { // Check if there is a profile_id being passed
+                    $profile = Mage::getModel('optimal/creditcard')->load((int)$customerData['profile_id']);
+                    if ($profile->getProfileId()) {
+                        $customerProfile['id'] = (string)$profile->getProfileId();
+
+                        // In case the profile exists
+                        if (!$saveCard) {
+                            $customerProfile['paymentToken'] = (string)$profile->getPaymentToken();
+                        }
+                    } else {
+                        Mage::throwException($this->__("The select profile does not exists."));
+                    }
+                } elseif($saveCard) {
+
+                    // Check for existing profile id
+                    $customerId = Mage::getSingleton('customer/session')->getId();
+                    $merchantCustomerId = $this->getMerchantCustomerId($customerId);
+                    $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
+                    $profile = Mage::getModel('optimal/creditcard')->loadByMerchantCustomerId($merchantCustomerId);
+
+                    if($profile->getProfileId()) {
+                        $customerProfile['id'] = (string)$profile->getProfileId();
+                    }else {
+                        $customerProfile['merchantCustomerId']    = $merchantCustomerId;
+                    }
+                }
             }
         }
 
@@ -178,7 +208,7 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
                 break;
         }
 
-        $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D');
+        $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D', Mage::app()->getStore()->getStoreId());
 
         if($skip3d)
         {
@@ -186,10 +216,20 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
                 'key'       => (string) 'skip3D',
                 'value'     => true
             );
+            // since we are skipping 3D-Secure check, hence we can process the order via Silent Post
+            $extendedOptionsArray[] = array(
+                'key'       => 'silentPost',
+                'value'     => true
+            );
         } else {
             $extendedOptionsArray[] = array(
                 'key'       => (string) 'skip3D',
                 'value'     => false
+            );
+
+            $extendedOptionsArray[] = array(
+                'key'       => 'disablePaymentPageEditing',
+                'value'     => true
             );
         }
 
@@ -311,55 +351,37 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
                 'transaction.status'
             ),
             'synchronous'   => true,
-            'uri'           => Mage::getBaseUrl()
+            'uri'           => Mage::getBaseUrl() . 'optimal/handler/callback'
         );
 
         // Callback information
         $redirectArray = array();
+        $returnKeys = array('id', 'transaction.confirmationNumber', 'transaction.status');
+
         $redirectArray[] = array(
             'rel'           => (string) 'on_success',
-            'returnKeys'    => array(
-                'id',
-                'transaction.confirmationNumber',
-                'transaction.status'
-            ),
-            'uri'           => Mage::getBaseUrl()
+            'returnKeys'    => $returnKeys,
+            'uri'           => Mage::getBaseUrl() . 'optimal/handler/callback'
         );
         $redirectArray[] = array(
             'rel'           => (string) 'on_error',
-            'returnKeys'    => array(
-                'id',
-                'transaction.confirmationNumber',
-                'transaction.status'
-            ),
-            'uri'           => Mage::getBaseUrl()
+            'returnKeys'    => $returnKeys,
+            'uri'           => Mage::getBaseUrl() . 'optimal/handler/callback'
         );
         $redirectArray[] = array(
             'rel'           => (string) 'on_decline',
-            'returnKeys'    => array(
-                'id',
-                'transaction.confirmationNumber',
-                'transaction.status'
-            ),
-            'uri'           => Mage::getBaseUrl()
+            'returnKeys'    => $returnKeys,
+            'uri'           => Mage::getBaseUrl() . 'optimal/handler/callback'
         );
         $redirectArray[] = array(
             'rel'           => (string) 'on_timeout',
-            'returnKeys'    => array(
-                'id',
-                'transaction.confirmationNumber',
-                'transaction.status'
-            ),
-            'uri'           => Mage::getBaseUrl()
+            'returnKeys'    => $returnKeys,
+            'uri'           => Mage::getBaseUrl() . 'optimal/handler/callback'
         );
         $redirectArray[] = array(
             'rel'           => (string) 'on_hold',
-            'returnKeys'    => array(
-                'id',
-                'transaction.confirmationNumber',
-                'transaction.status'
-            ),
-            'uri'           => Mage::getBaseUrl()
+            'returnKeys'    => $returnKeys,
+            'uri'           => Mage::getBaseUrl() . 'optimal/handler/callback'
         );
 
         // Add extra information to the order Data
@@ -372,8 +394,8 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         $data['extendedOptions']    = $extendedOptionsArray;
         $data['addendumData']       = $addendumDataArray;
 
+        Mage::log($data, null, 'NetBanxData.log');
         return $data;
-
     }
 
     public function getMsgByCode($code = null)
@@ -391,6 +413,33 @@ class Demac_Optimal_Helper_Data extends Mage_Core_Helper_Abstract
         }
 
         return $msg;
+    }
+
+    public function restoreQuote()
+    {
+        $checkoutSession = Mage::getSingleton('checkout/session');
+        $order = $checkoutSession->getLastRealOrder();
+        if ($order->getId()) {
+            $quote = Mage::getModel('sales/quote')->load($order->getQuoteId());
+            if ($quote->getId()) {
+                $quote->setIsActive(1)
+                    ->setReservedOrderId(null)
+                    ->save();
+                $checkoutSession->replaceQuote($quote)
+                    ->unsLastRealOrderId();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function canShow()
+    {
+        $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D', Mage::app()->getStore()->getStoreId());
+        $profilesEnabled = Mage::getStoreConfig('payment/optimal_profiles/active', Mage::app()->getStore()->getStoreId());
+        $show = ($profilesEnabled && $skip3d);
+
+        return $show;
     }
 
 }

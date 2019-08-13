@@ -1,5 +1,8 @@
 <?php
 $info = $this->getCardInfo();
+if (!isset($info['name'])) {
+    $info['name'] = '';
+}
 ?>
 
 <?php if(isset($info)): ?>

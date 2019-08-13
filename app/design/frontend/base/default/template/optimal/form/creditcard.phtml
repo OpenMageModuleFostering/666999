@@ -24,8 +24,16 @@
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 ?>
-<?php $_code=$this->getMethodCode() ?>
-<?php if($this->hasOptimalProfiles() === true): ?>
+<?php
+$_code = $this->getMethodCode();
+
+$skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D');
+$profilesEnabled = ($this->hasOptimalProfiles() === true);
+
+?>
+
+
+<?php if($profilesEnabled && $skip3d): ?>
     <div id="select_card_form" >
         <ul class="profile_list form-list" id="payment_form_<?php echo $_code ?>" >
             <li class="wide">
@@ -178,7 +186,13 @@
 
 
     </script>
+
+<?php elseif (!$skip3d): ?>
+    <ul class="form-list" id="payment_form_<?php echo $_code ?>" style="display:none;">
+        <li>You will be redirected to Optimal Payments for payment authorisation.</li>
+    </ul>
 <?php else: ?>
+
     <ul class="form-list" id="payment_form_<?php echo $_code ?>" style="display:none;">
         <li>
             <label for="<?php echo $_code ?>_cc_owner" class="required"><em>*</em><?php echo $this->__('Name on Card') ?></label>

@@ -190,6 +190,19 @@ class Demac_Optimal_Frontend_OptimalController extends Mage_Core_Controller_Fron
             // Call the helper and get the data for netbanks
             $data = $helper->prepareNetbanksOrderData($orderData ,$customerData, $createProfile, 'authorize');
 
+            foreach ($data['extendedOptions'] as $index => $xOp) {
+                if ($xOp['key'] == 'skip3D') {
+                    $data['extendedOptions'][$index]['value'] = true;
+                }
+            }
+
+//            $data['extendedOptions'][] = array(
+//                'key' => 'storeCardIndicator',
+//                'value' => true
+//            );
+
+            Mage::log($data, null, 'optimal-addcc.log');
+
             // Call Netbanks API and create the order
             $response = $client->createOrder($data);
             if (isset($response->link)) {
@@ -213,6 +226,7 @@ class Demac_Optimal_Frontend_OptimalController extends Mage_Core_Controller_Fron
                 );
 
                 $paymentResponse    = $client->submitPayment($postURL,$paymentData);
+                Mage::log($paymentResponse, null, 'optimnal-paymentrsp.log');
                 $orderStatus        = $client->retrieveOrder($response->id);
                 $transaction        = $orderStatus->transaction;
 

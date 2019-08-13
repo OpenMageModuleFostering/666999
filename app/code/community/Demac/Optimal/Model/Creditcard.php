@@ -27,4 +27,11 @@ class Demac_Optimal_Model_Creditcard extends Mage_Core_Model_Abstract
         return $this;
 
     }
+
+    public function loadByCustomerId($customerId)
+    {
+        return $this->load($customerId, 'customer_id');
+//        $this->_getResource()->loadByCustomerId($this, $customerId);
+//        return $this;
+    }
 }

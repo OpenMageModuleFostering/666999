@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<layout version="0.1.0"> i
+<layout version="0.1.0">
     <checkout_onepage_index translate="label" module="page">
         <reference name="before_body_end">
             <block type="optimal/threat" template="optimal/threatmeter.phtml" name="optimal_threat" as="optimal_threat"/>

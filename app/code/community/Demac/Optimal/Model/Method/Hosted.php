@@ -145,6 +145,12 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
      */
     public function validate()
     {
+        $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D', Mage::app()->getStore()->getStoreId());
+
+        if (!$skip3d) {
+            return $this;
+        }
+
         $info = $this->getInfoInstance();
         $errorMsg = false;
         $availableTypes = explode(',',$this->getConfigData('cctypes'));
@@ -231,8 +237,17 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                 $createProfile = $paymentData['optimal_create_profile'];
             }
 
-            // Get customer information
-            if ($customerSession->isLoggedIn()){
+            $checkoutMethod = Mage::getSingleton('checkout/type_onepage')->getCheckoutMethod();
+
+            if ($checkoutMethod != 'guest') {
+                $quote = Mage::getSingleton('sales/quote')->load($order->getQuoteId());
+                $billing = $quote->getBillingAddress();
+                $customerData['is_guest'] = false;
+                $customerData['lastname'] = (string)$billing->getLastname();
+                $customerData['firstname'] = (string)$billing->getFirstname();
+                $customerData['email'] = (string)$billing->getEmail();
+
+            } elseif ($customerSession->isLoggedIn()){ // Get customer information
                 $customerData = $customer->getData();
                 $customerData['is_guest'] = false;
                 $customerData['lastname'] = (string)$customer->getLastname();
@@ -273,6 +288,43 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                 Mage::throwException($this->__("There was a problem creating the order"));
             }
 
+            $skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D', Mage::app()->getStore()->getStoreId());
+            // Redirect the Customer if 3D-Secure verification is turned on
+            if (isset($postURL) && !$skip3d) {
+
+                try {
+                    $order->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT);
+                    $order->setStatus('pending_payment');
+                    $order->addStatusHistoryComment('Redirecting the Customer to Optimal Payments for Payment Authorisation', 'pending_payment');
+                    $order->addStatusHistoryComment(
+                        'Netbanks Order Id: ' . $response->id .'<br/>' .
+                        'Reference: # ' . $response->merchantRefNum .'<br/>'
+                    );
+                    $order->setIsNotified(false);
+                    $order->save();
+                    $checkoutSess = Mage::getSingleton('checkout/session');
+                    $checkoutSess->unsQuoteId();
+                    $checkoutSess->unsRedirectUrl();
+
+                    $payment->setStatus('PENDING');
+                    $payment->setAdditionalInformation('order', serialize(array('id' => $response->id)));
+                    $payment->setTransactionId($response->id);
+                    // magento will automatically close the transaction on auth preventing the invoice from being captured online.
+                    $payment->setIsTransactionClosed(false);
+                    $payment->save();
+
+                    $this->orderRedirectUrl($postURL);
+
+                } catch (Exception $e) {
+                    Mage::log($e->getMessage(), null, 'demac_optimal.log');
+                    Mage::logException($e);
+                    $checkoutSess->addError($this->__('An error was encountered while redirecting to the payment gateway, please try again later.'));
+                    $this->_handlePaymentFailure();
+                    $this->orderRedirectUrl(Mage::getBaseUrl() . 'checkout/cart');
+                }
+
+                return $this;
+            }
 
             if(isset($postURL)) {
                 $paymentData = $this->_preparePayment($payment->getData());
@@ -291,7 +343,7 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
 
                 if (!isset($orderStatus->transaction))
                 {
-                    Mage::log('Transaction Object not present in orderStatus ... ABORT');
+                    Mage::log('Aborting ... Transaction Object not present in orderStatus', null, 'demac_optimal.log');
                     Mage::throwException('Something went wrong with your transaction. Please contact support.');
                 }
 
@@ -300,69 +352,67 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
                 // Now we need to check the payment status if the transaction is available
                 if($transaction->status == 'declined' || $transaction->status == 'cancelled')
                 {
-                    Mage::throwException($this->__("There was a processing your payment"));
-                } else {
-
-                    // Check the order status for the profile information and try to save it
-                    if($createProfile){
-                        if(isset($orderStatus->profile)){
-                            $profile = Mage::getModel('optimal/creditcard');
-                            $merchantCustomerId = $orderStatus->profile->merchantCustomerId;
-
-                            if(!isset($merchantCustomerId))
-                            {
-                                $merchantCustomerId = Mage::helper('optimal')->getMerchantCustomerId($order->getCustomerId());
-                                $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
-                            }
-
-                            // Set Profile Info
-                            $profile->setCustomerId($order->getCustomerId());
-                            $profile->setProfileId($orderStatus->profile->id);
-                            $profile->setMerchantCustomerId($merchantCustomerId);
-                            $profile->setPaymentToken($orderStatus->profile->paymentToken);
-
-                            // Set Nickname
-                            $cardName = $orderStatus->transaction->card->brand;
-                            $profile->setCardNickname(Mage::helper('optimal')->processCardNickname($cardName));
-
-                            // Set Nickname
-                            //$cardHolder = $payment->getCcOwner();
-                            $cardHolder = $customerData['firstname'] . ' ' . $customerData['lastname']; // $params['firstname'] . $params['lastname'];
-                            $profile->setCardHolder($cardHolder);
-
-                            // Set Card Info
-                            $lastfour = $payment->getCcLast4();
-                            $profile->setLastFourDigits($lastfour);
-
-                            // Format card expiration date [todo]: Make a helper function
-                            $expirationDate = sprintf("%02s", $paymentData['cardExpiryMonth']) . "/"  . substr($paymentData['cardExpiryYear'], -2);
-
-                            $profile->setCardExpiration($expirationDate);
-
-                            $profile->save();
-                        }else {
-                            Mage::throwException($this->__("There was a problem saving your payment information."));
-                        }
-                    }
-
-
-
-                    $order->addStatusHistoryComment(
-                        'Netbanks Order Id: ' . $orderStatus->id .'<br/>' .
-                        'Reference: # ' . $orderStatus->merchantRefNum .'<br/>' .
-                        'Transaction Id: ' . $transaction->confirmationNumber .'<br/>' .
-                        'Status: ' . $transaction->status .'<br/>'
-                    );
-
-                    $payment->setStatus('APPROVED');
-                    $payment->setAdditionalInformation('order', serialize(array('id' => $orderStatus->id, 'optimal_profile_id' => $savedCreditCardProfileId)));
-                    $payment->setAdditionalInformation('transaction', serialize($transaction));
-                    $payment->setTransactionId($orderStatus->id);
-                    // magento will automatically close the transaction on auth preventing the invoice from being captured online.
-                    $payment->setIsTransactionClosed(false);
-                    $payment->setAdditionalInformation('payment_type', $this->getInfoInstance()->getCcType());
-
+                    Mage::throwException($this->__("There was an error processing your payment"));
                 }
+
+                // Check the order status for the profile information and try to save it
+                if($createProfile){
+                    if(isset($orderStatus->profile)){
+                        $profile = Mage::getModel('optimal/creditcard');
+                        $merchantCustomerId = $orderStatus->profile->merchantCustomerId;
+
+                        if(!isset($merchantCustomerId))
+                        {
+                            $merchantCustomerId = Mage::helper('optimal')->getMerchantCustomerId($order->getCustomerId());
+                            $merchantCustomerId = $merchantCustomerId['merchant_customer_id'];
+                        }
+
+                        // Set Profile Info
+                        $profile->setCustomerId($order->getCustomerId());
+                        $profile->setProfileId($orderStatus->profile->id);
+                        $profile->setMerchantCustomerId($merchantCustomerId);
+                        $profile->setPaymentToken($orderStatus->profile->paymentToken);
+
+                        // Set Nickname
+                        $cardName = $orderStatus->transaction->card->brand;
+                        $profile->setCardNickname(Mage::helper('optimal')->processCardNickname($cardName));
+
+                        // Set Nickname
+                        //$cardHolder = $payment->getCcOwner();
+                        $cardHolder = $customerData['firstname'] . ' ' . $customerData['lastname']; // $params['firstname'] . $params['lastname'];
+                        $profile->setCardHolder($cardHolder);
+
+                        // Set Card Info
+                        $lastfour = $payment->getCcLast4();
+                        $profile->setLastFourDigits($lastfour);
+
+                        // Format card expiration date [todo]: Make a helper function
+                        $expirationDate = sprintf("%02s", $paymentData['cardExpiryMonth']) . "/"  . substr($paymentData['cardExpiryYear'], -2);
+
+                        $profile->setCardExpiration($expirationDate);
+
+                        $profile->save();
+                    }else {
+                        Mage::throwException($this->__("There was a problem saving your payment information."));
+                    }
+                }
+
+
+
+                $order->addStatusHistoryComment(
+                    'Netbanks Order Id: ' . $orderStatus->id .'<br/>' .
+                    'Reference: # ' . $orderStatus->merchantRefNum .'<br/>' .
+                    'Transaction Id: ' . $transaction->confirmationNumber .'<br/>' .
+                    'Status: ' . $transaction->status .'<br/>'
+                );
+
+                $payment->setStatus('APPROVED');
+                $payment->setAdditionalInformation('order', serialize(array('id' => $orderStatus->id, 'optimal_profile_id' => $savedCreditCardProfileId)));
+                $payment->setAdditionalInformation('transaction', serialize($transaction));
+                $payment->setTransactionId($orderStatus->id);
+                // magento will automatically close the transaction on auth preventing the invoice from being captured online.
+                $payment->setIsTransactionClosed(false);
+                $payment->setAdditionalInformation('payment_type', $this->getInfoInstance()->getCcType());
             }
 
             return $this;
@@ -393,25 +443,28 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
 
         return $fPaymentData;
     }
-    
+
+    public function getOptimalOrderStatus($client, $id, $count = 0) {
+        return $this->_getOptimalOrderStatus($client, $id, $count);
+    }
+
     protected function _getOptimalOrderStatus($client, $id, $counter = 0)
     {
-    	if($counter >= 3){
-    		Mage::throwException('There was a problem retrieving the order information. Please contact support.');
-    	}
-    	
-        Mage::log('Get-Optimal-Order-Status Try #: ' . ($counter + 1));
+        if($counter >= 3){
+            Mage::throwException('There was a problem retrieving the order information. Please contact support.');
+        }
 
-    	try{
-    	   return $client->retrieveOrder($id);
-    	} catch (Demac_Optimal_Model_Hosted_Exception $e) { // in case when Error is generated from Optimal
+        Mage::log('Get-Optimal-Order-Status Try #: ' . ($counter + 1), null, 'demac_optimal.log');
+
+        try{
+            return $client->retrieveOrder($id);
+        } catch (Demac_Optimal_Model_Hosted_Exception $e) { // in case when Error is generated from Optimal
             Mage::throwException($e->getMessage());
-            return;
         } catch(Exception $e) {
-    		$counter++;
-    		$this->_getOptimalOrderStatus($client, $id, $counter);
-    	}
-    	
+            $counter++;
+            $this->_getOptimalOrderStatus($client, $id, $counter);
+        }
+
     }
 
 
@@ -620,6 +673,57 @@ class Demac_Optimal_Model_Method_Hosted extends Mage_Payment_Model_Method_Cc
         }
 
         return $this;
+    }
+
+    public function orderRedirectUrl($url = null)
+    {
+        static $gatewayUrl;
+
+        if (!$url) {
+            return $gatewayUrl;
+        }
+
+        $gatewayUrl = $url;
+
+        return $gatewayUrl;
+    }
+
+    public function getOrderPlaceRedirectUrl()
+    {
+        return $this->orderRedirectUrl();
+    }
+
+    /**
+     * Handle Payment Failure
+     * - Cancel the order
+     * - Restore the quote
+     *
+     * Cancel Order and attempt to restore cart.
+     *
+     */
+    protected function _handlePaymentFailure()
+    {
+        $session = Mage::getSingleton('checkout/session');
+
+        if ($session->getLastRealOrderId()) {
+            try {
+                $order = Mage::getModel('sales/order')->loadByIncrementId($session->getLastRealOrderId());
+                if ($order->getId()) {
+                    $order->cancel()->save();
+                    $quote = Mage::getModel('sales/quote')->load($order->getQuoteId());
+                    if ($quote->getId()) {
+                        $quote->setIsActive(1)
+                            ->setReservedOrderId(null)
+                            ->save();
+
+                        $session->replaceQuote($quote)
+                            ->unsLastRealOrderId();
+                    }
+                }
+            } catch (Exception $e) {
+                Mage::logException($e);
+            }
+        }
     }
 
 }

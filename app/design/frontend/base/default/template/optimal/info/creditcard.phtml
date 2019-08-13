@@ -1,4 +1,11 @@
 <?php
+$skip3d = Mage::getStoreConfig('payment/optimal_hosted/skip3D');
+// if 3D-Secure check is enabled, only show the Payment Method Title
+if (!$skip3d) {
+    echo Mage::getStoreConfig('payment/optimal_hosted/title');
+    return;
+}
+
 $info = $this->getCardInfo();
 ?>
 <?php echo $this->__('Credit Card Type: %s', $this->htmlEscape(ucwords($info['card_type']))) ?><br />

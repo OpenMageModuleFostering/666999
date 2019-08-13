@@ -199,30 +199,56 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
      */
     protected function callApi($url, $method, $data = array())
     {
-
+        $helper = Mage::helper('optimal');
+        $session = Mage::getSingleton('customer/session');
         $response = json_decode($this->_callApi($url,$method,$data));
+        $defaultMessage = 'Payment Gateway Error. Please contact the site admin.';
+
+        if (isset($response->error) && !isset($response->error->code)) {
+            Mage::log('Corrupt Response from Gateway:', null, 'demac_optimal.log');
+            Mage::log($response, null, 'demac_optimal.log');
+            $helper->cleanMerchantCustomerId($session->getId());
+            throw new Demac_Optimal_Model_Hosted_Exception($defaultMessage);
+        }
 
         if (isset($response->error)) {
-            Mage::helper('optimal')->cleanMerchantCustomerId(Mage::getSingleton('customer/session')->getId());
-            $message = $this->_getMsgByCode($response->error->code);
-            $message = ($message !== null) ? $message : $response->error->message;
+            $message = $helper->getMsgByCode($response->error->code);
+
+            if ($message === null && isset($response->error->message)) {
+                $message = $response->error->message;
+            } else {
+                $message = $defaultMessage;
+            }
+
+            $helper->cleanMerchantCustomerId($session->getId());
 
             throw new Demac_Optimal_Model_Hosted_Exception($message);
-            return false;
         }
 
         if (isset($response->transaction->errorCode)) {
-            $message = $this->_getMsgByCode($response->transaction->errorCode);
-            $message = ($message !== null) ? $message : $response->transaction->errorMessage;
+            $message = $helper->getMsgByCode($response->transaction->errorCode);
 
-            $session = Mage::getSingleton('customer/session');
-            if (!$session->getCustomerId()) {
-                Mage::getSingleton('customer/session')->addError($message);
+            if ($message === null && !isset($response->transaction->errorCode)) {
+                Mage::log('Corrupt Response from Gateway (transaction):', null, 'demac_optimal.log');
+                Mage::log($response, null, 'demac_optimal.log');
+                throw new Demac_Optimal_Model_Hosted_Exception($defaultMessage);
             }
-            Mage::helper('optimal')->cleanMerchantCustomerId(Mage::getSingleton('customer/session')->getId());
+
+            if ($message === null) {
+                $message = $response->transaction->errorMessage;
+            }
+
+            if (empty($message)) {
+                $message = $defaultMessage;
+            }
+
+            if (!$session->getCustomerId()) {
+                $session->addError($message);
+            }
+
+            Mage::helper('optimal')->cleanMerchantCustomerId($session->getId());
 
             throw new Demac_Optimal_Model_Hosted_Exception($message);
-            return false;
         }
 
         return $response;
@@ -254,7 +280,6 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
      */
     protected function _callApi($url,$mode,$data = array())
     {
-        $helper = Mage::helper('optimal');
         $data = json_encode($data);
 
         try {
@@ -302,8 +327,8 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
             Mage::logException($e);
             return false;
         }
-        Mage::log('OPTIMAL RESPONSE (_callApi):');
-        Mage::log($curl_response);
+        Mage::log('OPTIMAL RESPONSE (_callApi):', null, 'demac_optimal.log');
+        Mage::log($curl_response, null, 'demac_optimal.log');
         return $curl_response;
     }
 
@@ -331,15 +356,20 @@ class Demac_Optimal_Model_Hosted_Client extends Demac_Optimal_Model_Client_Abstr
             $this->_checkCurlVerifyPeer($curl);
 
             //set the url, number of POST vars, POST data
-            curl_setopt($curl,CURLOPT_URL, $url);
-            curl_setopt($curl,CURLOPT_POST, true);
+            curl_setopt($curl, CURLOPT_URL, $url);
+            curl_setopt($curl, CURLOPT_POST, true);
             curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($curl,CURLOPT_POSTFIELDS, $data_string);
+            curl_setopt($curl, CURLOPT_HEADER, true);
+            curl_setopt($curl, CURLOPT_POSTFIELDS, $data_string);
             $curl_response = curl_exec($curl);
 
-            Mage::log('OPTIMAL RESPONSE (submitPayment):');
-            Mage::log($curl_response);
+            $headers = substr($curl_response, 0, curl_getinfo($curl, CURLINFO_HEADER_SIZE));
+            $headers = explode("\n", $headers);
+
+            Mage::log('OPTIMAL RESPONSE (submitPayment):', null, 'demac_optimal.log');
+            Mage::log($curl_response, null, 'demac_optimal.log');
             curl_close($curl);
+
             return true;
 
         } catch (Exception $e) {

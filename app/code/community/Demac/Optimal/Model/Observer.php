@@ -24,6 +24,7 @@ class Demac_Optimal_Model_Observer
 
         if ($payment->getMethod() == 'optimal_hosted') {
             $orderAdditionalInformation = $payment->getAdditionalInformation();
+
             $transaction = unserialize($orderAdditionalInformation['transaction']);
 
             if(!empty($transaction->riskReasonCode))
