@@ -1,16 +1,19 @@
 {
-    "name": "OpenMageModuleFostering/666999",
+    "name": "OpenMageModuleFostering\/666999",
     "type": "magento-module",
     "license": "Apache-2.0",
     "homepage": "",
     "description": "Optimal Payments module",
     "authors": [
-    {
-        "name": "Collins Harper",
-        "email": "ch@collinsharper.com"
-    }
-],
+        {
+            "name": "Collins Harper",
+            "email": "ch@collinsharper.com"
+        }
+    ],
     "suggest": {
-        "magento-hackathon/magento-composer-installer": "*"
-    }
+        "magento-hackathon\/magento-composer-installer": "*"
+    },
+    "keywords": [
+        "openmage-module"
+    ]
 }
